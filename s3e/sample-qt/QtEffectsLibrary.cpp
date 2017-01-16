@@ -4,10 +4,11 @@
 
 #include <QOpenGLTexture>
 #include <QImage>
-#include "qgeometry/qgeometrydata.h"
 
 #include <stdint.h>
 #include <cmath>
+
+#include "qgeometry/qgeometrydata.h"
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
@@ -147,16 +148,14 @@ void QtParticleManager::Flush()
             }
         }
 
-    	glTexCoordPointer(2, GL_FLOAT, sizeof(_VertexData3), vertices->t);
-    	glVertexPointer(3, GL_FLOAT, sizeof(_VertexData3), vertices->v);
-    	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(_VertexData3), &vertices->c);
+    	glTexCoordPointer(2, GL_FLOAT, sizeof(QVector3D), vertices->t);
+    	glVertexPointer(3, GL_FLOAT, sizeof(QVector3D), vertices->v);
+    	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(QVector3D), &vertices->c);
     	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        CIwMaterial* mat = IW_GX_ALLOC_MATERIAL();
-        mat->SetTexture(static_cast<QtImage*>(_lastSprite)->GetTexture());
-        mat->SetDepthWriteMode(CIwMaterial::DEPTH_WRITE_DISABLED);
-        mat->SetAlphaMode(_lastAdditive ? CIwMaterial::ALPHA_ADD : CIwMaterial::ALPHA_BLEND);
-        IwGxSetMaterial(mat);
+        glTexture2D(static_cast<QtImage*>(_lastSprite)->GetTexture());
+        glDisable(DEPTH_WRITE_DISABLED);
+        gl(_lastAdditive ? CIwMaterial::ALPHA_ADD : CIwMaterial::ALPHA_BLEND);
 
         glDrawArray(IW_GX_QUAD_LIST, indices, count4);
 

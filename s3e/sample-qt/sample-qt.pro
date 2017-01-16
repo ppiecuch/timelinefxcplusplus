@@ -32,7 +32,7 @@ SOURCES += \
     ../TLFXPugiXMLLoader.cpp \
     ../TLFXVector2.cpp \
     ../TLFXXMLLoader.cpp \
-    ../../pugixml/pugixml.cpp
+    ../../ext/pugixml.cpp
 
 HEADERS += \
     QtEffectsLibrary.h \
@@ -48,6 +48,7 @@ HEADERS += \
     ../TLFXParticleManager.h \
     ../TLFXPugiXMLLoader.h \
     ../TLFXVector2.h \
-    ../TLFXXMLLoader.h
+    ../TLFXXMLLoader.h \
+    ../../ext/pugixml.hpp
 
 include(qgeometrydata/qgeometrydata.pri)

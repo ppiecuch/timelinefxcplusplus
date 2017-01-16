@@ -19,6 +19,19 @@
 class QOpenGLTexture;
 class XMLLoader;
 
+class QtImage : public TLFX::AnimImage
+{
+public:
+    QtImage();
+    ~QtImage();
+
+    bool Load(const char *filename);
+    QOpenGLTexture *GetTexture() const;
+
+protected:
+    QOpenGLTexture *_texture;
+};
+
 class QtEffectsLibrary : public TLFX::EffectsLibrary
 {
 public:
@@ -46,21 +59,8 @@ protected:
         QColor color;
     };
     std::list<Batch> _batch;
-    TLFX::AnimImage *_lastSprite;
+    QtImage         *_lastSprite;
     bool             _lastAdditive;
-};
-
-class QtImage : public TLFX::AnimImage
-{
-public:
-    QtImage();
-    ~QtImage();
-
-    bool Load(const char *filename);
-    QOpenGLTexture *GetTexture() const;
-
-protected:
-    QOpenGLTexture *_texture;
 };
 
 #endif // _QTEFFECTSLIBRARY_H
