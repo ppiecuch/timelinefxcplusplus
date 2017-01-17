@@ -6,12 +6,12 @@
 //
 // http://subversion.assembla.com/svn/timelinefx-module/timelinefx.mod/timelinefx.bmx
 
-#include "tlLibrary.h"
+#include "tllibrary.h"
 
-#include "tlParticleManager.h"
-#include "tlEffect.h"
-#include "tlEmitter.h"
-#include "tlParticle.h"
+#include "tlparticlemanager.h"
+#include "tleffect.h"
+#include "tlemitter.h"
+#include "tlparticle.h"
 
 //------------------------------------------------------------------------------
 // Effects library for storing a list of effects and particle images/animations

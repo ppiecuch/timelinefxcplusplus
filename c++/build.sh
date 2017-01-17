@@ -1,9 +1,10 @@
 #!/bin/bash
-g++ -o demo \
-    Gradient.cpp \
-    tlEmitter.cpp \
-    tlLibrary.cpp \
-    tlParticleManager.cpp \
-    tlEffect.cpp \
-    tlEntity.cpp \
-    tlParticle.cpp
+g++ -o tldemo \
+    ezxml.c \
+    gradient.cpp \
+    tlemitter.cpp \
+    tllibrary.cpp \
+    tleffect.cpp \
+    tlentity.cpp \
+    tlparticle.cpp \
+    tlparticlemanager.cpp

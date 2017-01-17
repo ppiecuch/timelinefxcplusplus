@@ -11,7 +11,7 @@
 
 //------------------------------------------------------------------------------
 
-#include "Types.h"
+#include "tltypes.h"
 
 class tlParticleManager;
 class tlParticle;

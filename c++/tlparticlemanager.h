@@ -11,14 +11,14 @@
 
 //------------------------------------------------------------------------------
 
-#include "Types.h"
 #include "ezxml.h"
 
-#include "tlEntity.h"
-#include "tlEffect.h"
-#include "tlEmitter.h"
-#include "tlParticle.h"
-#include "tlLibrary.h"
+#include "tltypes.h"
+#include "tlentity.h"
+#include "tleffect.h"
+#include "tlemitter.h"
+#include "tlparticle.h"
+#include "tllibrary.h"
 
 //------------------------------------------------------------------------------
 

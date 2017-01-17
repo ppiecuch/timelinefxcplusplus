@@ -11,8 +11,8 @@
 
 //------------------------------------------------------------------------------
 
-#include "Types.h"
-#include "tlEntity.h"
+#include "tltypes.h"
+#include "tlentity.h"
 
 class tlEmitter;
 

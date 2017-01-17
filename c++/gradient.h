@@ -8,7 +8,7 @@
 #ifndef __GRADIENT__H__
 #define __GRADIENT__H__
 
-#include "Types.h"
+#include "tltypes.h"
 
 //------------------------------------------------------------------------------
 

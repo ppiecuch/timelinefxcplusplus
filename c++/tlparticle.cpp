@@ -6,10 +6,10 @@
 //
 // http://subversion.assembla.com/svn/timelinefx-module/timelinefx.mod/timelinefx.bmx
 
-#include "tlParticle.h"
-#include "tlParticleManager.h"
-#include "tlEntity.h"
-#include "tlEmitter.h"
+#include "tlparticle.h"
+#include "tlparticlemanager.h"
+#include "tlentity.h"
+#include "tlemitter.h"
 
 #include "Time.h"
 

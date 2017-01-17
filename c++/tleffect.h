@@ -11,9 +11,9 @@
 
 //------------------------------------------------------------------------------
 
-#include "Types.h"
-#include "Gradient.h"
-#include "tlEntity.h"
+#include "gradient.h"
+#include "tltypes.h"
+#include "tlentity.h"
 
 //------------------------------------------------------------------------------
 
