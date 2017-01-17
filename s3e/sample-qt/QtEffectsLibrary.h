@@ -1,6 +1,4 @@
-#ifdef _MSC_VER
 #pragma once
-#endif
 
 /*
  * Qt OpenGL for rendering
@@ -15,6 +13,9 @@
 #include "TLFXEffectsLibrary.h"
 #include "TLFXParticleManager.h"
 #include "TLFXAnimImage.h"
+
+#include "qgeometry/qgeometrydata.h"
+#include "qgeometry/qglpainter.h"
 
 class QOpenGLTexture;
 class XMLLoader;
@@ -36,7 +37,7 @@ class QtEffectsLibrary : public TLFX::EffectsLibrary
 {
 public:
     virtual TLFX::XMLLoader* CreateLoader() const;
-    virtual TLFX::AnimImage* CreateImage() const;
+    virtual QtImage* CreateImage() const;
 };
 
 class QtParticleManager : public TLFX::ParticleManager
@@ -44,8 +45,9 @@ class QtParticleManager : public TLFX::ParticleManager
 public:
     QtParticleManager(int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
     void Flush();
+
 protected:
-    virtual void DrawSprite(TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation,
+    virtual void DrawSprite(QtImage* sprite, float px, float py, float frame, float x, float y, float rotation,
                             float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive);
 
     // batching
@@ -59,8 +61,11 @@ protected:
         QColor color;
     };
     std::list<Batch> _batch;
+    QGeometryData batch;
     QtImage         *_lastSprite;
     bool             _lastAdditive;
+private:
+    QGLPainter painter;
 };
 
 #endif // _QTEFFECTSLIBRARY_H

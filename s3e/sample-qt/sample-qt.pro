@@ -17,8 +17,8 @@ CONFIG += c++11
 INCLUDEPATH += ../../ext ..
 
 SOURCES += \
-    main.cpp \
-    QtEffectsLibrary.cpp \
+    ../../ext/pugixml.cpp \
+    ../../ext/debug_font.cpp \
     ../TLFXAnimImage.cpp \
     ../TLFXAttributeNode.cpp \
     ../TLFXEffect.cpp \
@@ -32,10 +32,12 @@ SOURCES += \
     ../TLFXPugiXMLLoader.cpp \
     ../TLFXVector2.cpp \
     ../TLFXXMLLoader.cpp \
-    ../../ext/pugixml.cpp
+    QtEffectsLibrary.cpp \
+    main.cpp
 
 HEADERS += \
-    QtEffectsLibrary.h \
+    ../../ext/pugixml.hpp \
+    ../../ext/debug_font.h \
     ../TLFXAnimImage.h \
     ../TLFXAttributeNode.h \
     ../TLFXEffect.h \
@@ -49,6 +51,6 @@ HEADERS += \
     ../TLFXPugiXMLLoader.h \
     ../TLFXVector2.h \
     ../TLFXXMLLoader.h \
-    ../../ext/pugixml.hpp
+    QtEffectsLibrary.h
 
-include(qgeometrydata/qgeometrydata.pri)
+include(qgeometry/qgeometry.pri)

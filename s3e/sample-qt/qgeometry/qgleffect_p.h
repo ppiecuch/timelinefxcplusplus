@@ -54,7 +54,10 @@
 //
 
 #include "qglpainter.h"
-#include <QtCore/QScopedPointer.h>
+#include <QString>
+#include <QMap>
+#include <QColor>
+#include <QScopedPointer.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -62,13 +65,13 @@ QT_BEGIN_NAMESPACE
 #define QGL_SHADERS_ONLY 1
 #endif
 
+class QGLPainter;
+class QGLMaterial;
 class QGLFlatColorEffectPrivate;
 class QGLPerVertexColorEffectPrivate;
 class QGLFlatTextureEffectPrivate;
 class QGLFlatDecalTextureEffectPrivate;
 class QGLLitMaterialEffectPrivate;
-class QGLShaderProgramEffectPrivate;
-
 class QOpenGLShaderProgram;
 
 class QGLFlatColorEffect : public QGLAbstractEffect
@@ -182,41 +185,45 @@ public:
     virtual ~QGLLitModulateTextureEffect();
 };
 
-class QGLShaderProgramEffect : public QGLAbstractEffect
+class QGLColladaFxEffectPrivate
 {
+    friend class QGLColladaFxEffectFactory;
 public:
-    QGLShaderProgramEffect();
-    virtual ~QGLShaderProgramEffect();
+    QGLColladaFxEffectPrivate();
+    ~QGLColladaFxEffectPrivate();
 
-    void setActive(QGLPainter *painter, bool flag);
-    void update(QGLPainter *painter, QGLPainter::Updates updates);
+    void addMaterialChannelsToShaderSnippets(const QGLMaterial *material);
+    void resetGlueSnippets();
+    void setTextureUniform(QOpenGLShaderProgram *program, QGLPainter* painter, QString channelName, QGLTexture2D* texture, int* textureUnit, QColor fallbackColor);
+    void updateMaterialChannelSnippets(QString channelName, QGLTexture2D* texture, int* textureUnit, QColor fallbackColor);
 
-    QByteArray vertexShader() const;
-    void setVertexShader(const QByteArray &source);
-    void setVertexShaderFromFile(const QString &fileName);
+    QString id;
+    QString sid;
+    QString name;
 
-    QByteArray geometryShader() const;
-    void setGeometryShader(const QByteArray &source);
-    void setGeometryShaderFromFile(const QString &fileName);
+    // The spec allows for 3D textures as well, but for now only 2D is
+    // supported
+    QGLTexture2D* emissiveTexture;
+    QGLTexture2D* ambientTexture;
+    QGLTexture2D* diffuseTexture;
+    QGLTexture2D* specularTexture;
+    int lighting;
+    QGLMaterial* material;
 
-    QByteArray fragmentShader() const;
-    void setFragmentShader(const QByteArray &source);
-    void setFragmentShaderFromFile(const QString &fileName);
+    QStringList vertexShaderCodeSnippets;
+    QStringList vertexShaderDeclarationSnippets;
+    QStringList vertexShaderVariableNames;
 
-    int maximumLights() const;
-    void setMaximumLights(int value);
+    QStringList fragmentShaderCodeSnippets;
+    QStringList fragmentShaderDeclarationSnippets;
+    QStringList fragmentShaderVariableNames;
 
-    QOpenGLShaderProgram *program() const;
+    QString vertexShaderEndGlueSnippet;
+    QString vertexShaderMainGlueSnippet;
+    QString fragmentShaderEndGlueSnippet;
+    QString fragmentShaderMainGlueSnippet;
 
-protected:
-    virtual bool beforeLink();
-    virtual void afterLink();
-
-private:
-    QScopedPointer<QGLShaderProgramEffectPrivate> d_ptr;
-
-    Q_DISABLE_COPY(QGLShaderProgramEffect)
-    Q_DECLARE_PRIVATE(QGLShaderProgramEffect)
+    bool currentlyActive;
 };
 
 QT_END_NAMESPACE

@@ -1,4 +1,4 @@
-QT += gui-private network opengl
+QT += gui-private network opengl xml
 
 SOURCES += \
     $$PWD/qglnamespace.cpp \
@@ -38,6 +38,7 @@ HEADERS += \
     $$PWD/qglvertexbundle.h \
     $$PWD/qlogicalvertex.h \
     $$PWD/qglcamera.h \
+    $$PWD/qgleffect.h \
     $$PWD/qgleffect_p.h \
     $$PWD/qglmaterial.h \
     $$PWD/qglmaterial_p.h \
