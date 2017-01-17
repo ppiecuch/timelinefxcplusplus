@@ -896,7 +896,7 @@ QArray<QColor4ub> QCustomDataArray::toColorArray() const
 */
 
 #ifndef QT_NO_DEBUG_STREAM
-Q_QT3D_EXPORT QDebug operator<<(QDebug dbg, const QCustomDataArray &array)
+QDebug operator<<(QDebug dbg, const QCustomDataArray &array)
 {
     dbg << "QCustomDataArray" << &array << " -- count:" << array.count();
     for (int i = 0; i < array.count(); ++i)

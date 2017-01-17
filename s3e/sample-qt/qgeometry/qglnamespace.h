@@ -42,9 +42,9 @@
 #ifndef QGLNAMESPACE_H
 #define QGLNAMESPACE_H
 
-QT_BEGIN_NAMESPACE
+#include <qsize.h>
 
-class QSize;
+QT_BEGIN_NAMESPACE
 
 namespace QGL
 {

@@ -41,7 +41,7 @@
 
 #include "qglvertexbundle.h"
 #include "qglvertexbundle_p.h"
-#include "qglabstracteffect.h"
+#include "qglpainter.h"
 #include <QtCore/qlist.h>
 #include <QtCore/qatomic.h>
 #include <QOpenGLShaderProgram>

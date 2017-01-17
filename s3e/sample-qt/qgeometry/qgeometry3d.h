@@ -39,14 +39,218 @@
 **
 ****************************************************************************/
 
-#ifndef QBOX3D_H
-#define QBOX3D_H
+#ifndef QGEOMETRY3D_H
+#define QGEOMETRY3D_H
 
-#include "qray3d.h"
+#include <QtGui/qvector3d.h>
+#include <QtGui/qmatrix4x4.h>
 
 QT_BEGIN_NAMESPACE
 
-class QMatrix4x4;
+class QRay3D
+{
+public:
+    QRay3D();
+    QRay3D(const QVector3D &origin, const QVector3D &direction);
+
+    QVector3D origin() const;
+    void setOrigin(const QVector3D & value);
+
+    QVector3D direction() const;
+    void setDirection(const QVector3D & value);
+
+    bool contains(const QVector3D &point) const;
+    bool contains(const QRay3D &ray) const;
+
+    QVector3D point(float t) const;
+    float projectedDistance(const QVector3D &point) const;
+
+    QVector3D project(const QVector3D &vector) const;
+
+    float distance(const QVector3D &point) const;
+
+    void transform(const QMatrix4x4 &matrix);
+    QRay3D transformed(const QMatrix4x4 &matrix) const;
+
+    bool operator==(const QRay3D &other);
+    bool operator!=(const QRay3D &other);
+
+private:
+    QVector3D m_origin;
+    QVector3D m_direction;
+
+};
+
+inline QRay3D::QRay3D() : m_direction(1.0f, 0.0f, 0.0f) {}
+
+inline QRay3D::QRay3D(const QVector3D &origin_, const QVector3D &direction_)
+    : m_origin(origin_)
+    , m_direction(direction_)
+{
+}
+
+inline QVector3D QRay3D::origin() const
+{
+    return m_origin;
+}
+
+inline void QRay3D::setOrigin(const QVector3D &value)
+{
+    m_origin = value;
+}
+
+inline QVector3D QRay3D::direction() const
+{
+    return m_direction;
+}
+
+inline void QRay3D::setDirection(const QVector3D & value)
+{
+    m_direction = value;
+}
+
+inline QVector3D QRay3D::point(float t) const
+{
+    return m_origin + t * m_direction;
+}
+
+inline void QRay3D::transform(const QMatrix4x4 &matrix)
+{
+    m_origin = matrix * m_origin;
+    m_direction = matrix.mapVector(m_direction);
+}
+
+inline QRay3D QRay3D::transformed(const QMatrix4x4 &matrix) const
+{
+    return QRay3D(matrix * m_origin, matrix.mapVector(m_direction));
+}
+
+inline bool QRay3D::operator==(const QRay3D &other)
+{
+    return m_origin == other.origin() && m_direction == other.direction();
+}
+
+inline bool QRay3D::operator!=(const QRay3D &other)
+{
+    return m_origin != other.origin() || m_direction != other.direction();
+}
+
+inline bool qFuzzyCompare(const QRay3D &ray1, const QRay3D &ray2)
+{
+    return qFuzzyCompare(ray1.origin(), ray2.origin()) &&
+           qFuzzyCompare(ray1.direction(), ray2.direction());
+}
+
+#ifndef QT_NO_DEBUG_STREAM
+QDebug operator<<(QDebug dbg, const QRay3D &ray);
+#endif
+
+#ifndef QT_NO_DATASTREAM
+QDataStream &operator<<(QDataStream &stream, const QRay3D &ray);
+QDataStream &operator>>(QDataStream &stream, QRay3D &ray);
+#endif
+
+
+class QPlane3D
+{
+public:
+    QPlane3D();
+    QPlane3D(const QVector3D &point, const QVector3D &normal);
+    QPlane3D(const QVector3D &p, const QVector3D &q, const QVector3D &r);
+
+    QVector3D origin() const;
+    void setOrigin(const QVector3D& value);
+
+    QVector3D normal() const;
+    void setNormal(const QVector3D& value);
+
+    bool contains(const QVector3D &point) const;
+    bool contains(const QRay3D &ray) const;
+
+    bool intersects(const QRay3D &ray) const;
+    float intersection(const QRay3D &ray) const;
+
+    float distance(const QVector3D &point) const;
+
+    void transform(const QMatrix4x4 &matrix);
+    QPlane3D transformed(const QMatrix4x4 &matrix) const;
+
+    bool operator==(const QPlane3D &other);
+    bool operator!=(const QPlane3D &other);
+
+private:
+    QVector3D m_origin;
+    QVector3D m_normal;
+};
+
+inline QPlane3D::QPlane3D() : m_normal(1.0f, 0.0f, 0.0f) {}
+
+inline QPlane3D::QPlane3D(const QVector3D &point, const QVector3D &normal_)
+    : m_origin(point), m_normal(normal_)
+{
+}
+
+inline QPlane3D::QPlane3D(const QVector3D &p, const QVector3D &q, const QVector3D &r)
+    : m_origin(p), m_normal(QVector3D::crossProduct(q - p, r - q))
+{
+}
+
+inline QVector3D QPlane3D::origin() const
+{
+    return m_origin;
+}
+
+inline void QPlane3D::setOrigin(const QVector3D &value)
+{
+    m_origin = value;
+}
+
+inline QVector3D QPlane3D::normal() const
+{
+    return m_normal;
+}
+
+inline void QPlane3D::setNormal(const QVector3D& value)
+{
+    m_normal = value;
+}
+
+inline void QPlane3D::transform(const QMatrix4x4 &matrix)
+{
+    m_origin = matrix * m_origin;
+    m_normal = matrix.mapVector(m_normal);
+}
+
+inline QPlane3D QPlane3D::transformed(const QMatrix4x4 &matrix) const
+{
+    return QPlane3D(matrix * m_origin, matrix.mapVector(m_normal));
+}
+
+inline bool QPlane3D::operator==(const QPlane3D &other)
+{
+    return m_origin == other.origin() && m_normal == other.normal();
+}
+
+inline bool QPlane3D::operator!=(const QPlane3D &other)
+{
+    return m_origin != other.origin() || m_normal != other.normal();
+}
+
+inline bool qFuzzyCompare(const QPlane3D &plane1, const QPlane3D &plane2)
+{
+    return qFuzzyCompare(plane1.origin(), plane2.origin()) &&
+           qFuzzyCompare(plane1.normal(), plane2.normal());
+}
+
+#ifndef QT_NO_DEBUG_STREAM
+QDebug operator<<(QDebug dbg, const QPlane3D &plane);
+#endif
+
+#ifndef QT_NO_DATASTREAM
+QDataStream &operator<<(QDataStream &stream, const QPlane3D &plane);
+QDataStream &operator>>(QDataStream &stream, QPlane3D &plane);
+#endif
+
 
 class QBox3D
 {
@@ -206,6 +410,9 @@ QDataStream &operator>>(QDataStream &stream, QBox3D &box);
 
 QT_END_NAMESPACE
 
+
+Q_DECLARE_METATYPE(QRay3D)
+Q_DECLARE_METATYPE(QPlane3D)
 Q_DECLARE_METATYPE(QBox3D)
 
-#endif
+#endif // QGEOMETRY3D_H

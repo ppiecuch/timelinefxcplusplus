@@ -1,29 +1,53 @@
+QT += gui-private network opengl
+
 SOURCES += \
-    qarray.cpp \
-    qcolor4ub.cpp \
-    qcustomdataarray.cpp \
-    qgeometrydata.cpp \
-    qglattributedescription.cpp \
-    qglattributeset.cpp \
-    qglattributevalue.cpp \
-    qglindexbuffer.cpp \
-    qglvertexbundle.cpp \
-    qlogicalvertex.cpp \
-    qvector2darray.cpp \
-    qvector3darray.cpp \
-    qvector4darray.cpp
+    $$PWD/qglnamespace.cpp \
+    $$PWD/qarray.cpp \
+    $$PWD/qcolor4ub.cpp \
+    $$PWD/qcustomdataarray.cpp \
+    $$PWD/qgeometrydata.cpp \
+    $$PWD/qgeometry3d.cpp \
+    $$PWD/qglattributedescription.cpp \
+    $$PWD/qglattributeset.cpp \
+    $$PWD/qglattributevalue.cpp \
+    $$PWD/qglindexbuffer.cpp \
+    $$PWD/qglvertexbundle.cpp \
+    $$PWD/qlogicalvertex.cpp \
+    $$PWD/qglcamera.cpp \
+    $$PWD/qglmaterial.cpp \
+    $$PWD/qgleffect.cpp \
+    $$PWD/qglpainter.cpp \
+    $$PWD/qglsurface.cpp \
+    $$PWD/qmatrix4x4stack.cpp \
+    $$PWD/qglext.cpp \
+    $$PWD/qgltexture2d.cpp \
+    $$PWD/qdownloadmanager.cpp
+
 
 HEADERS += \
-    qarray.h \
-    qcolor4ub.h \
-    qcustomdataarray.h \
-    qgeometrydata.h \
-    qglattributedescription.h \
-    qglattributeset.h \
-    qglattributevalue.h \
-    qglindexbuffer.h \
-    qglvertexbundle.h \
-    qlogicalvertex.h \
-    qvector2darray.h \
-    qvector3darray.h \
-    qvector4darray.h
+    $$PWD/qglnamespace.h \
+    $$PWD/qarray.h \
+    $$PWD/qcolor4ub.h \
+    $$PWD/qcustomdataarray.h \
+    $$PWD/qgeometrydata.h \
+    $$PWD/qgeometry3d.h \
+    $$PWD/qglattributedescription.h \
+    $$PWD/qglattributeset.h \
+    $$PWD/qglattributevalue.h \
+    $$PWD/qglindexbuffer.h \
+    $$PWD/qglvertexbundle.h \
+    $$PWD/qlogicalvertex.h \
+    $$PWD/qglcamera.h \
+    $$PWD/qgleffect_p.h \
+    $$PWD/qglmaterial.h \
+    $$PWD/qglmaterial_p.h \
+    $$PWD/qglpainter.h \
+    $$PWD/qglpainter_p.h \
+    $$PWD/qglsurface.h \
+    $$PWD/qglsurface_p.h \
+    $$PWD/qmatrix4x4stack.h \
+    $$PWD/qmatrix4x4stack_p.h \
+    $$PWD/qglext_p.h \
+    $$PWD/qgltexture2d.h \
+    $$PWD/qgltexture2d_p.h \
+    $$PWD/qdownloadmanager.h
