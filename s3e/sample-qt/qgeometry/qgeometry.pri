@@ -1,4 +1,4 @@
-QT += gui-private network opengl xml
+QT += gui-private widgets-private network opengl xml
 
 SOURCES += \
     $$PWD/qglnamespace.cpp \
@@ -21,6 +21,7 @@ SOURCES += \
     $$PWD/qmatrix4x4stack.cpp \
     $$PWD/qglext.cpp \
     $$PWD/qgltexture2d.cpp \
+    $$PWD/qglview.cpp \
     $$PWD/qdownloadmanager.cpp
 
 
@@ -51,4 +52,5 @@ HEADERS += \
     $$PWD/qglext_p.h \
     $$PWD/qgltexture2d.h \
     $$PWD/qgltexture2d_p.h \
+    $$PWD/qglview.h \
     $$PWD/qdownloadmanager.h
