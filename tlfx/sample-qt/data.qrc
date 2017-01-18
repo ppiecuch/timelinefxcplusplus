@@ -1,0 +1,28 @@
+<RCC>
+  <qresource>
+    <file>../../data/particles/BlastWave.png</file>
+    <file>../../data/particles/BlastWave4.png</file>
+    <file>../../data/particles/BlastWave9.png</file>
+    <file>../../data/particles/data.xml</file>
+    <file>../../data/particles/ElectricGroup1.png</file>
+    <file>../../data/particles/fire1.png</file>
+    <file>../../data/particles/fire7.png</file>
+    <file>../../data/particles/FireBall3.png</file>
+    <file>../../data/particles/Flare1.png</file>
+    <file>../../data/particles/Flare2.png</file>
+    <file>../../data/particles/Glow1.png</file>
+    <file>../../data/particles/Glow2.png</file>
+    <file>../../data/particles/highlight.png</file>
+    <file>../../data/particles/leaf.png</file>
+    <file>../../data/particles/liquid.png</file>
+    <file>../../data/particles/plume.png</file>
+    <file>../../data/particles/Smoke1.png</file>
+    <file>../../data/particles/Smoke10.png</file>
+    <file>../../data/particles/Smoke2.png</file>
+    <file>../../data/particles/Smoke8.png</file>
+    <file>../../data/particles/Smoke9.png</file>
+    <file>../../data/particles/SmokePart2.png</file>
+    <file>../../data/particles/smokey3.png</file>
+    <file>../../data/particles/Spark1.png</file>
+  </qresource>
+</RCC>
