@@ -53,15 +53,12 @@
 QT_BEGIN_NAMESPACE
 
 class QGLSection;
-class QGLMaterialCollection;
 class QGLBuilderPrivate;
-class QGLPainter;
 
 class QGLBuilder
 {
 public:
-    explicit QGLBuilder(QGLMaterialCollection *materials = 0);
-    explicit QGLBuilder(QSharedPointer<QGLMaterialCollection> materials);
+    explicit QGLBuilder();
     virtual ~QGLBuilder();
 
     // section management

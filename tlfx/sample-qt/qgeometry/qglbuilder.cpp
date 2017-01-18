@@ -426,24 +426,6 @@ QGLBuilderPrivate::~QGLBuilderPrivate()
 }
 
 /*!
-    Construct a new QGLBuilder using \a materials for the palette.  If the
-    \a materials argument is null, then a new palette is created.
-*/
-QGLBuilder::QGLBuilder(QGLMaterialCollection *materials)
-    : dptr(new QGLBuilderPrivate(this))
-{
-    if (!materials)
-        materials = new QGLMaterialCollection();
-}
-
-QGLBuilder::QGLBuilder(QSharedPointer<QGLMaterialCollection> materials)
-    : dptr(new QGLBuilderPrivate(this))
-{
-    if (materials.isNull())
-        materials = QSharedPointer<QGLMaterialCollection>(new QGLMaterialCollection());
-}
-
-/*!
     Destroys this QGLBuilder recovering any resources.
 */
 QGLBuilder::~QGLBuilder()
