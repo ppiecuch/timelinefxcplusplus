@@ -5,6 +5,7 @@ SOURCES += \
     $$PWD/qarray.cpp \
     $$PWD/qcolor4ub.cpp \
     $$PWD/qcustomdataarray.cpp \
+    $$PWD/qglbuilder.cpp \
     $$PWD/qgeometrydata.cpp \
     $$PWD/qgeometry3d.cpp \
     $$PWD/qglattributedescription.cpp \
@@ -30,6 +31,8 @@ HEADERS += \
     $$PWD/qarray.h \
     $$PWD/qcolor4ub.h \
     $$PWD/qcustomdataarray.h \
+    $$PWD/qglbuilder.h \
+    $$PWD/qglbuilder_p.h \
     $$PWD/qgeometrydata.h \
     $$PWD/qgeometry3d.h \
     $$PWD/qglattributedescription.h \

@@ -15,7 +15,6 @@
 #include "TLFXAnimImage.h"
 
 #include "qgeometry/qgeometrydata.h"
-#include "qgeometry/qglpainter.h"
 
 class QOpenGLTexture;
 class XMLLoader;
@@ -26,8 +25,8 @@ public:
     QtImage();
     ~QtImage();
 
-    bool Load(const char *filename);
-    QOpenGLTexture *GetTexture() const;
+    virtual bool Load(const char *filename);
+    QOpenGLTexture *GetTexture() const { return _texture; }
 
 protected:
     QOpenGLTexture *_texture;
@@ -37,7 +36,7 @@ class QtEffectsLibrary : public TLFX::EffectsLibrary
 {
 public:
     virtual TLFX::XMLLoader* CreateLoader() const;
-    virtual QtImage* CreateImage() const;
+    virtual TLFX::AnimImage* CreateImage() const;
 };
 
 class QtParticleManager : public TLFX::ParticleManager
@@ -47,7 +46,7 @@ public:
     void Flush();
 
 protected:
-    virtual void DrawSprite(QtImage* sprite, float px, float py, float frame, float x, float y, float rotation,
+    virtual void DrawSprite(TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation,
                             float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive);
 
     // batching
@@ -62,10 +61,8 @@ protected:
     };
     std::list<Batch> _batch;
     QGeometryData batch;
-    QtImage         *_lastSprite;
-    bool             _lastAdditive;
-private:
-    QGLPainter painter;
+    TLFX::AnimImage*_lastSprite;
+    bool _lastAdditive;
 };
 
 #endif // _QTEFFECTSLIBRARY_H

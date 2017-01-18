@@ -36,6 +36,10 @@
 #	include <string>
 #endif
 
+#ifdef QT_CORE_LIB
+#   include <QFile>
+#endif
+
 // For placement new
 #include <new>
 
@@ -3461,6 +3465,41 @@ PUGI__NS_BEGIN
 		return doc.load_buffer_inplace_own(contents, size, options, encoding);
 	}
 
+#ifdef QT_CORE_LIB
+	PUGI__FN xml_parse_result load_file_impl(xml_document& doc, QFile& file, unsigned int options, xml_encoding encoding)
+	{
+		if (!file.exists()) return make_parse_result(status_file_not_found);
+
+		// get file size (can result in I/O errors)
+		size_t size = file.size();
+		xml_parse_status size_status = size==0?status_io_error:status_ok;
+
+		if (size_status != status_ok)
+		{
+			return make_parse_result(size_status);
+		}
+		
+		// allocate buffer for the whole file
+		char* contents = static_cast<char*>(xml_memory::allocate(size > 0 ? size : 1));
+
+		if (!contents)
+		{
+			return make_parse_result(status_out_of_memory);
+		}
+
+		// read file in memory
+		size_t read_size = file.read(contents, size);
+
+		if (read_size != size)
+		{
+			xml_memory::deallocate(contents);
+			return make_parse_result(status_io_error);
+		}
+		
+		return doc.load_buffer_inplace_own(contents, size, options, encoding);
+	}
+#endif
+
 #ifndef PUGIXML_NO_STL
 	template <typename T> struct xml_stream_chunk
 	{
@@ -5210,7 +5249,12 @@ namespace pugi
 	{
 		reset();
 
+#ifdef QT_CORE_LIB
+        QFile file(path_);
+        if (!file.open(QIODevice::ReadOnly)) return impl::make_parse_result(status_file_not_found);
+#else
 		FILE* file = fopen(path_, "rb");
+#endif
 
 		return impl::load_file_impl(*this, file, options, encoding);
 	}
@@ -5219,8 +5263,12 @@ namespace pugi
 	{
 		reset();
 
+#ifdef QT_CORE_LIB
+        QFile file(QString::fromWCharArray(path_));
+        if (!file.open(QIODevice::ReadOnly)) return impl::make_parse_result(status_file_not_found);
+#else
 		FILE* file = impl::open_file_wide(path_, L"rb");
-
+#endif
 		return impl::load_file_impl(*this, file, options, encoding);
 	}
 

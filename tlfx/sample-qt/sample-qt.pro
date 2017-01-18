@@ -1,4 +1,5 @@
 QT += widgets
+CONFIG += debug
 
 DESTDIR = build-$$[QMAKE_SPEC]
 
@@ -12,6 +13,9 @@ OBJECTS_DIR = $$DESTDIR/$$TARGET-$$DIR/obj
 MOC_DIR = $$DESTDIR/$$TARGET-$$DIR/moc
 RCC_DIR = $$DESTDIR/$$TARGET-$$DIR/qrc
 UI_DIR = $$DESTDIR/$$TARGET-$$DIR/ui
+
+ICON = tlfx.icns
+RESOURCES += data.qrc
 
 CONFIG += c++11
 INCLUDEPATH += ../../ext ..
@@ -38,6 +42,7 @@ SOURCES += \
 HEADERS += \
     ../../ext/pugixml.hpp \
     ../../ext/debug_font.h \
+    ../../ext/qopenglerrorcheck.h \
     ../TLFXAnimImage.h \
     ../TLFXAttributeNode.h \
     ../TLFXEffect.h \

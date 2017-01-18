@@ -3,36 +3,47 @@
 #include "TLFXPugiXMLLoader.h"
 
 #include <QOpenGLTexture>
+#include <QFile>
 #include <QImage>
 
 #include <stdint.h>
 #include <cmath>
+
+#include "qgeometry/qglpainter.h"
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
     return new TLFX::PugiXMLLoader(0);
 }
 
-QtImage* QtEffectsLibrary::CreateImage() const
+TLFX::AnimImage* QtEffectsLibrary::CreateImage() const
 {
     return new QtImage();
 }
 
-
+//Textures DB
+QMap<QString, QImage> s_textureDB;
+QMap<QString, QSharedPointer<QOpenGLTexture>> s_openGLTextureDB;
 
 bool QtImage::Load( const char *filename )
 {
-    QOpenGLTexture *texture = new QOpenGLTexture(QImage(filename).mirrored());
-    texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    QFile f(filename);
+    if (!f.exists())
+        f.setFileName(QString(":/data/%1").arg(filename));
+    if (!f.exists()) {
+        qDebug() << "Failed to load image: " << filename;
+        return false;
+    }
+    _texture = new QOpenGLTexture(QImage(f.fileName()).mirrored());
+    _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+    _texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
     return true;
 }
 
 QtImage::QtImage()
-    : _texture(NULL)
+    : _texture(0)
 {
-
 }
 
 QtImage::~QtImage()
@@ -41,20 +52,15 @@ QtImage::~QtImage()
         delete _texture;
 }
 
-QOpenGLTexture* QtImage::GetTexture() const
-{
-    return _texture;
-}
-
 QtParticleManager::QtParticleManager( int particles /*= particleLimit*/, int layers /*= 1*/ )
     : TLFX::ParticleManager(particles, layers)
-    , _lastSprite(NULL)
+    , _lastSprite(0)
     , _lastAdditive(true)
 {
 
 }
 
-void QtParticleManager::DrawSprite( QtImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
+void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
 {
     Q_ASSERT(frame == 0);
 
@@ -67,11 +73,11 @@ void QtParticleManager::DrawSprite( QtImage* sprite, float px, float py, float f
     //uvs[index + 0] = {0, 0};
     batch.appendTexCoord(QVector2D(0, 0));
     //uvs[index + 1] = {1.0f, 0}
-    batch.appendTexCoord(QVector2D(1.0, 0));
+    batch.appendTexCoord(QVector2D(1, 0));
     //uvs[index + 2] = {1.0f, 1.0f};
-    batch.appendTexCoord(QVector2D(1.0, 1.0));
+    batch.appendTexCoord(QVector2D(1, 1));
     //uvs[index + 3] = {0, 1.0f};
-    batch.appendTexCoord(QVector2D(0, 1.0));
+    batch.appendTexCoord(QVector2D(0, 1));
 
     /*
     verts[index + 0].x = px - x * scaleX;
@@ -91,8 +97,8 @@ void QtParticleManager::DrawSprite( QtImage* sprite, float px, float py, float f
     float x0 = -x * scaleX;
     float y0 = -y * scaleY;
     float x1 = x0;
-    float y1 = (-y + _lastSprite->GetHeight()) * scaleY;
-    float x2 = (-x + _lastSprite->GetWidth()) * scaleX;
+    float y1 = (-y + sprite->GetHeight()) * scaleY;
+    float x2 = (-x + sprite->GetWidth()) * scaleX;
     float y2 = y1;
     float x3 = x2;
     float y3 = y0;
@@ -115,7 +121,7 @@ void QtParticleManager::DrawSprite( QtImage* sprite, float px, float py, float f
 
     for (int i = 0; i < 4; ++i) 
     {
-        batch.appendColor(QColor(r, g, b, alpha));
+        batch.appendColor(QColor(r, g, b, a));
     }
     
     _lastSprite = sprite;
@@ -126,19 +132,19 @@ void QtParticleManager::Flush()
 {
     if (batch.count() && _lastSprite)
     {
-        _lastSprite->GetTexture()->bind();
-        glDisable(GL_DEPTH);
+        dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->bind();
+        glDisable( GL_DEPTH );
+        glEnable( GL_BLEND );
         if (_lastAdditive) {
             // ALPHA_ADD
-            glBlendEquationEXT( GL_FUNC_ADD );
             glBlendFunc( GL_SRC_ALPHA, GL_ONE );
         } else {
             // ALPHA_BLEND
-            glBlendEquationEXT( GL_FUNC_ADD );
             glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         }
 
-        batch.draw(&painter, 0, batch.count());
+        QGLPainter p;
+        batch.draw(&p, 0, batch.count(), QGL::Lines);
         batch.clear();
     }
 }

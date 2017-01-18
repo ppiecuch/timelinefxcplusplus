@@ -67,8 +67,6 @@ public:
     // section management
     void newSection(QGL::Smoothing sm = QGL::Smooth);
 
-    QSharedPointer<QGLMaterialCollection> palette();
-
     // geometry building by primitive
     void addTriangles(const QGeometryData &triangle);
     void addQuads(const QGeometryData &quad);

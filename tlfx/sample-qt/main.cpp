@@ -13,17 +13,28 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "QtEffectsLibrary.h"
+
+#include <TLFXEffectsLibrary.h>
+#include <TLFXParticleManager.h>
+#include <TLFXEffect.h>
+
+#include "debug_font.h"
+
 // == Qt Window ==
 
 class Window : public QWindow, protected QOpenGLFunctions
 {
 	Q_OBJECT
-	typedef bool (*CallbackFunc)(Window*);
 private:
 	bool m_done, m_update_pending, m_auto_refresh;
 	QOpenGLContext *m_context;
 	QOpenGLPaintDevice *m_device;
-	CallbackFunc m_render, m_init;
+    
+    TLFX::EffectsLibrary *m_effects;
+    QtParticleManager *m_pm;
+    
+    QSize m_size;
 public:
 	QPoint cursorPos;
 public:
@@ -32,19 +43,32 @@ public:
 		, m_auto_refresh(true)
 		, m_context(0)
 		, m_device(0)
-		, m_render(0), m_init(0)
+        , m_effects(0), m_pm(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
 	~Window() { delete m_device; }
 	
 	void setAutoRefresh(bool a) { m_auto_refresh = a; }
-	void setCallback(CallbackFunc i, CallbackFunc r) { m_init = i; m_render = r; }
 	
 	void render(QPainter *painter) {
 		Q_UNUSED(painter);
-		if (m_render) m_render(this);
-	}
+
+        glViewport(0, 0, m_size.width(), m_size.height());
+        glOrtho(0, m_size.width(), m_size.height(), 0, -1, 1);
+        m_pm->SetScreenSize(m_size.width(), m_size.height());
+
+        glClearColor(1,1,1,1);
+        
+        m_pm->Update();
+
+        m_pm->DrawParticles();
+        m_pm->Flush();
+
+        glColor4f(1, 1, 1, 1);
+        dbgSetStatusLine("Running ...");
+        dbgFlush();
+    }
 	
 	void initialize() {
 		qDebug() << "OpenGL infos with gl functions:";
@@ -53,9 +77,21 @@ public:
 		qDebug() << " Vendor:" << (const char*)glGetString(GL_VENDOR);
 		qDebug() << " OpenGL Version:" << (const char*)glGetString(GL_VERSION);
 		qDebug() << " GLSL Version:" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
-		
-		if (m_init) m_done = !m_init(this);
-	}
+
+        m_effects = new QtEffectsLibrary();
+        m_effects->Load(":/data/particles/data.xml");
+
+        m_pm = new QtParticleManager();
+        m_pm->SetOrigin(0, 0);
+
+        TLFX::Effect *eff = m_effects->GetEffect("Area Effects/Swirly Balls");
+        TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
+
+        copy->SetPosition(0, 0);
+        m_pm->AddEffect(copy);
+
+        dbgLoadFont();
+    }
 	void update() { renderLater(); }
 	void render() {
 		if (!m_device) m_device = new QOpenGLPaintDevice;
@@ -63,6 +99,9 @@ public:
 		m_device->setSize(size());
 		QPainter painter(m_device);
 		render(&painter);
+	}
+	void resizeEvent(QResizeEvent *event) {
+        m_size = event->size();
 	}
 	void mousePressEvent(QMouseEvent *event) {
 		cursorPos = QPoint(event->x(), event->y());
