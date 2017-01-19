@@ -2,6 +2,7 @@
 #include "QtEffectsLibrary.h"
 #include "TLFXPugiXMLLoader.h"
 
+#include <QOpenGLContext>
 #include <QOpenGLTexture>
 #include <QFile>
 #include <QImage>
@@ -10,6 +11,7 @@
 #include <cmath>
 
 #include "qgeometry/qglpainter.h"
+#include "qgeometry/qglbuilder.h"
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
@@ -52,10 +54,11 @@ QtImage::~QtImage()
         delete _texture;
 }
 
-QtParticleManager::QtParticleManager( int particles /*= particleLimit*/, int layers /*= 1*/ )
+QtParticleManager::QtParticleManager( QWindow *w, int particles /*= particleLimit*/, int layers /*= 1*/ )
     : TLFX::ParticleManager(particles, layers)
     , _lastSprite(0)
     , _lastAdditive(true)
+    , _w(w)
 {
 
 }
@@ -64,12 +67,14 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
 {
     Q_ASSERT(frame == 0);
 
-    unsigned char alpha = (unsigned char)(a * 255);
+    #define qFF(C) C*(255.999)
+
+    quint8 alpha = qFF(a);
     if (alpha == 0 || scaleX == 0 || scaleY == 0) return;
 
     if (sprite != _lastSprite || additive != _lastAdditive)
         Flush();
-
+#if 0
     //uvs[index + 0] = {0, 0};
     batch.appendTexCoord(QVector2D(0, 0));
     //uvs[index + 1] = {1.0f, 0}
@@ -78,7 +83,7 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
     batch.appendTexCoord(QVector2D(1, 1));
     //uvs[index + 3] = {0, 1.0f};
     batch.appendTexCoord(QVector2D(0, 1));
-
+#endif
     /*
     verts[index + 0].x = px - x * scaleX;
     verts[index + 0].y = py - y * scaleY;
@@ -121,7 +126,8 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
 
     for (int i = 0; i < 4; ++i) 
     {
-        batch.appendColor(QColor(r, g, b, a));
+        //batch.appendColor(QColor(r, g, b, alpha));
+        batch.appendColor(QColor(255, 0, 255, 255));
     }
     
     _lastSprite = sprite;
@@ -144,7 +150,16 @@ void QtParticleManager::Flush()
         }
 
         QGLPainter p;
-        batch.draw(&p, 0, batch.count(), QGL::Lines);
-        batch.clear();
+        QGLBuilder builder;
+        builder.addQuads(batch);
+        QList<QGeometryData> opt = builder.optimized();
+        p.begin(_w);
+        Q_FOREACH(QGeometryData gd, opt) {
+            gd.draw(&p, 0, gd.count(), QGL::Lines);
+            qDebug() << gd.count();
+        }
+        p.disableEffect();
+        p.end();
+        batch = QGeometryData(); // clear batch data
     }
 }

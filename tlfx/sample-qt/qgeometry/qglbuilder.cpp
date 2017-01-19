@@ -63,8 +63,8 @@ QT_BEGIN_NAMESPACE
     \tableofcontents
 
     Use a QGLBuilder to build up vertex, index, texture and other data
-    during application initialization.  The finalizedSceneNode() function
-    returns an optimized scene which can be efficiently and flexibly
+    during application initialization.  The optimized() function
+    returns an optimized geometry which can be efficiently and flexibly
     displayed during frames of rendering.  It is suited to writing loaders
     for 3D models, and for programatically creating geometry.
 
@@ -93,12 +93,7 @@ QT_BEGIN_NAMESPACE
         builder << triangle;
 
         // obtain the scene from the builder
-        m_scene = builder.finalizedSceneNode();
-
-        // apply effects at app initialization time
-        QGLMaterial *mat = new QGLMaterial;
-        mat->setDiffuseColor(Qt::red);
-        m_scene->setMaterial(mat);
+        m_scene = builder.optimized();
     }
     \endcode
 
@@ -106,7 +101,8 @@ QT_BEGIN_NAMESPACE
     \code
     MyView::paintGL(QGLPainter *painter)
     {
-        m_scene->draw(painter);
+        Q_FOREACH(QGeometryData gd, m_scene)
+            gd->draw(painter);
     }
     \endcode
 
@@ -246,60 +242,6 @@ QT_BEGIN_NAMESPACE
     When writing new applications, simply leave construction of normals and
     indices to the QGLBuilder
 
-    \section1 Rendering and QGLSceneNode items.
-
-    QGLSceneNodes are used to manage application of local transformations,
-    materials and effects.
-
-    QGLBuilder generates a root level QGLSceneNode, which can be accessed
-    with the sceneNode() function.  Under this a new node is created for
-    each section of geometry, and also by using pushNode() and popNode().
-
-    To organize geometry for painting with different materials and effects
-    call the newNode() function:
-
-    \code
-    QGLSceneNode *box = builder.newNode();
-    box->setMaterial(wood);
-    \endcode
-
-    Many nodes may be created this way, but they will be optimized into
-    a small number of buffers under the one scene when the
-    finalizedSceneNode() function is called.
-
-    \image soup.png
-
-    Here the front can is a set of built geometry and the other two are
-    scene nodes that reference it, without copying any geometry.
-
-    \snippet qt3d/builder/builder.cpp 0
-
-    QGLSceneNodes can be used after the builder is created to cheaply
-    copy and redisplay the whole scene.  Or to reference parts of the geometry
-    use the functions newNode() or pushNode() and popNode() to manage
-    QGLSceneNode generation while building geometry.
-
-    To draw the resulting built geometry simply call the draw method of the
-    build geometry.
-
-    \snippet qt3d/builder/builder.cpp 1
-
-    Call the \l{QGLSceneNode::palette()}{palette()} function on the sceneNode()
-    to get the QGLMaterialCollection for the node, and place textures
-    and materials into it.
-
-    Built geometry will typically share the one palette.  Either create a
-    palette, and pass it to the \l{QGLBuilder::QGLBuilder()}{constructor};
-    or pass no arguments to the constructor and the QGLBuilder
-    will create a palette:
-
-    \snippet qt3d/builder/builder.cpp 2
-
-    These may then be applied as needed throughout the building of the
-    geometry using the integer reference, \c{canMat} in the above code.
-
-    See the QGLSceneNode documentation for more.
-
     \section1 Using Sections
 
     During initialization of the QGLBuilder, while accumulating
@@ -373,19 +315,12 @@ QT_BEGIN_NAMESPACE
     Each QGLSection references a contiguous range of vertices in a
     QGLBuilder.
 
-    \section1 Finalizing and Retrieving the Scene
+    \section1 Finalizing
 
     Once the geometry has been accumulated in the QGLBuilder instance,  the
-    finalizedSceneNode() method must be called to retrieve the optimized
-    scene.  This function serves to normalize the geometry and optimize
+    optimized() method must be called to retrieve the optimized
+    geometry.  This function serves to normalize the geometry and optimize
     it for display.
-
-    While it may be convenient to get pointers to sub nodes in the scene
-    during construction, it is important to retrieve the root of the scene
-    so that the memory consumed by the scene can be recovered.  The builder
-    will create a QGLMaterialCollection; and there may be geometry, materials
-    and other resources: these are all parented onto the root scene node.
-    These can easily be recovered by deleting the root scene node:
 
     \code
     MyView::MyView() : QGLView()
@@ -397,7 +332,7 @@ QT_BEGIN_NAMESPACE
         builder << triangles;
 
         // obtain the scene from the builder & take ownership
-        m_scene = builder.finalizedSceneNode();
+        m_scene = builder.optimized();
     }
 
     MyView::~MyView()
@@ -406,10 +341,6 @@ QT_BEGIN_NAMESPACE
         delete m_scene;
     }
     \endcode
-
-    Alternatively set the scene's parent to ensure resource recovery
-    \c{m_scene->setParent(this)}.
-
 
 */
 
@@ -423,6 +354,14 @@ QGLBuilderPrivate::QGLBuilderPrivate(QGLBuilder *parent)
 QGLBuilderPrivate::~QGLBuilderPrivate()
 {
     qDeleteAll(sections);
+}
+
+/*!
+    Construct a new empty QGLBuilder.
+*/
+QGLBuilder::QGLBuilder()
+    : dptr(new QGLBuilderPrivate(this))
+{
 }
 
 /*!
@@ -935,82 +874,15 @@ static inline void warnIgnore(int secCount, QGLSection *s, int vertCount, int in
 
 /*!
     Finish the building of this geometry, optimize it for rendering, and return a
-    pointer to the detached top-level scene node (root node).
-
-    Since the scene is detached from the builder object, the builder itself
-    may be deleted or go out of scope while the scene lives on:
-
-    \code
-    void MyView::MyView()
-    {
-        QGLBuilder builder;
-        // construct geometry
-        m_thing = builder.finalizedSceneNode();
-    }
-
-    void MyView::~MyView()
-    {
-        delete m_thing;
-    }
-
-    void MyView::paintGL()
-    {
-        m_thing->draw(painter);
-    }
-    \endcode
-
-    The root node will have a child node for each section that was created
-    during geometry building.
-
-    This method must be called exactly once after building the scene.
-
-    \b{Calling code takes ownership of the scene.}  In particular take care
-    to either explicitly destroy the scene when it is no longer needed - as shown
-    above.
-
-    For more complex applications parent each finalized scene node onto a QObject
-    so it will be implictly cleaned up by Qt.  If you use QGLSceneNode::setParent()
-    to do this, you can save an explicit call to addNode() since if setParent()
-    detects that the new parent is a QGLSceneNode it will call addNode() for you:
-
-    \code
-    // here a top level node for the app is created, and parented to the view
-    QGLSceneNode *topNode = new QGLSceneNode(this);
-
-    QGLBuilder b1;
-    // build geometry
-
-    QGLSceneNode *thing = b1.finalizedSceneNode();
-
-    // does a QObject::setParent() to manage memory, and also adds to the scene
-    // graph, so no need to call topNode->addNode(thing)
-    thing->setParent(topNode);
-
-    QGLBuilder b2;
-    // build more geometry
-    QGLSceneNode *anotherThing = b2.finalizedSceneNode();
-
-    // again parent on get addNode for free
-    anotherThing->setParent(topNode);
-    \endcode
-
-    If this builder is destroyed without calling this method to take
-    ownership of the scene, a warning will be printed on the console and the
-    scene will be deleted.  If this method is called more than once, on the
-    second and subsequent calls a warning is printed and NULL is returned.
+    optimized geometry list.
 
     This function does the following:
     \list
-        \li packs all geometry data from sections into QGLSceneNode instances
-        \li recalculates QGLSceneNode start() and count() for the scene
-        \li deletes all QGLBuilder's internal data structures
-        \li returns the top level scene node that references the geometry
-        \li sets the internal pointer to the top level scene node to NULL
+        \li packs all geometry data from sections into optimized instances
+        \li returns the list of optimized geometry
     \endlist
-
-    \sa sceneNode()
 */
-QGLBuilder *QGLBuilder::finalized()
+QList<QGeometryData> QGLBuilder::optimized()
 {
     QGeometryData g;
     QMap<quint32, QGeometryData> geos;
@@ -1021,16 +893,15 @@ QGLBuilder *QGLBuilder::finalized()
         QGLSection *s = dptr->sections.at(i);
         QGL::IndexArray indices = s->indices();
         int icnt = indices.size();
-        int scnt = i;
         int vcnt = s->count();
-        if (scnt == 0 || icnt == 0)
+        if (icnt == 0 || vcnt == 0)
         {
             if (!qgetenv("Q_WARN_EMPTY_MESH").isEmpty())
             {
-                if (scnt == 0)
-                    warnIgnore(scnt, s, vcnt, icnt, "geometry count zero");
+                if (vcnt == 0)
+                    warnIgnore(i, s, vcnt, icnt, "vertex count zero");
                 else
-                    warnIgnore(scnt, s, vcnt, icnt, "index count zero");
+                    warnIgnore(i, s, vcnt, icnt, "index count zero");
             }
             continue;
         }
@@ -1054,22 +925,16 @@ QGLBuilder *QGLBuilder::finalized()
             geos.insert(s->fields(), g);
         }
     }
+    return geos.values();
 }
 
 /*!
     Creates a new section with smoothing mode set to \a smooth.  By default
     \a smooth is QGL::Smooth.
 
-    A section must be created before any geometry or new nodes can be added
+    A section must be created before any geometry can be added
     to the builder.  However one is created automatically by addTriangle()
-    and the other add functions; and also by newNode(), pushNode() or popNode()
-    if needed.
-
-    The internal node stack - see pushNode() and popNode() - is cleared,
-    and a new top-level QGLSceneNode is created for this section by calling
-    newNode().
-
-    \sa newNode(), pushNode()
+    and the other add functions.
 */
 void QGLBuilder::newSection(QGL::Smoothing smooth)
 {

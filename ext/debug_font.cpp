@@ -197,7 +197,12 @@ void dbgFlush()
     glPushMatrix();                                 // store the modelview matrix
     glLoadIdentity();								// reset the modelview matrix
     
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glUseProgram(0);
+    
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
     
 	glTexCoordPointer(2, GL_FLOAT, 2*sizeof(pt_t), &text->t1);

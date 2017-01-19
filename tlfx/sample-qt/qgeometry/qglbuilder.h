@@ -58,7 +58,7 @@ class QGLBuilderPrivate;
 class QGLBuilder
 {
 public:
-    explicit QGLBuilder();
+    QGLBuilder();
     virtual ~QGLBuilder();
 
     // section management
@@ -76,7 +76,7 @@ public:
     inline void addPane(float size = 1.0f);
     inline void addPane(QSizeF size);
 
-    QGLBuilder *finalized();
+    QList<QGeometryData> optimized();
 
 protected:
     // internal and test functions

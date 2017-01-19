@@ -13,6 +13,9 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "qgeometry/qglbuilder.h"
+#include "qgeometry/qglpainter.h"
+
 #include "QtEffectsLibrary.h"
 
 #include <TLFXEffectsLibrary.h>
@@ -55,16 +58,42 @@ public:
 		Q_UNUSED(painter);
 
         glViewport(0, 0, m_size.width(), m_size.height());
-        glOrtho(0, m_size.width(), m_size.height(), 0, -1, 1);
+        glOrtho(0, m_size.width(), 0, m_size.height(), -10, 10);
         m_pm->SetScreenSize(m_size.width(), m_size.height());
 
         glClearColor(1,1,1,1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         m_pm->Update();
 
-        m_pm->DrawParticles();
-        m_pm->Flush();
+        glColor4f(0, 0, 0, 1);
 
+        //m_pm->DrawParticles();
+        //m_pm->Flush();
+
+         float vertices[12] =
+    {
+        -50.0, -50.0, -1.0,   // A
+        50.0, -50.0, -1.0,    // B
+        50.0, 50.0, 1.0,      // C
+        -50.0, 50.0, 1.0      // D
+    };
+    QGLBuilder quad;
+    QGeometryData data;
+    data.appendVertexArray(QArray<QVector3D>::fromRawData(
+            reinterpret_cast<const QVector3D*>(vertices), 4));
+    quad.addQuads(data);
+        QGLPainter p;
+        QList<QGeometryData> opt = quad.optimized();
+        p.begin(this);
+        Q_FOREACH(QGeometryData gd, opt) {
+            gd.draw(&p, 0, gd.count());
+            qDebug() << m_size << gd.count() << gd;
+        }
+        p.disableEffect();
+        p.end();
+    
+    
         glColor4f(1, 1, 1, 1);
         dbgSetStatusLine("Running ...");
         dbgFlush();
@@ -81,7 +110,7 @@ public:
         m_effects = new QtEffectsLibrary();
         m_effects->Load(":/data/particles/data.xml");
 
-        m_pm = new QtParticleManager();
+        m_pm = new QtParticleManager(this);
         m_pm->SetOrigin(0, 0);
 
         TLFX::Effect *eff = m_effects->GetEffect("Area Effects/Swirly Balls");
