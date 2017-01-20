@@ -36,6 +36,7 @@ private:
     
     TLFX::EffectsLibrary *m_effects;
     QtParticleManager *m_pm;
+    int m_curr_effect; // currently selected effect
 
     QGLPainter m_p;
     QSize m_size;
@@ -47,7 +48,7 @@ public:
 		, m_auto_refresh(true)
 		, m_context(0)
 		, m_device(0)
-        , m_effects(0), m_pm(0)
+        , m_effects(0), m_pm(0), m_curr_effect(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
@@ -74,7 +75,7 @@ public:
         m_p.end();    
     
         glColor4f(1, 1, 1, 1);
-        dbgSetStatusLine("Running ...");
+        dbgSetStatusLine(QString("Running effect: %1").arg(m_effects->AllEffects()[m_curr_effect].c_str()).toLatin1().constData());
         dbgFlush();
     }
 	

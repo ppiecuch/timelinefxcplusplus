@@ -138,7 +138,9 @@ void EffectsLibrary::AddEffect( Effect *e )
     {
         delete old->second;
         // no need to erase, we are assigning new one immediately
-    }
+    } else
+        // add new name
+        _effects_names.push_back(name);
 
     _effects[name] = e;
 
@@ -158,7 +160,9 @@ void EffectsLibrary::AddEmitter( Emitter *e )
     {
         delete old->second;
         // no need to erase, we are assigning new one immediately
-    }
+    } else
+        // add new name
+        _emitters_names.push_back(name);
 
     _emitters[name] = e;
 

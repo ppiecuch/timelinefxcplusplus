@@ -20,15 +20,19 @@
 
 #include "TLFXXMLLoader.h"
 
+#include <vector>
 #include <map>
 #include <list>
 #include <string>
 
 //#define MARMALADE_DEBUG_TRACE 
 
-#ifdef MARMALADE_DEBUG_TRACE
+#if defined(_S3E_) && defined(MARMALADE_DEBUG_TRACE)
     #include <IwDebug.h>
     #define TLFXLOG(chan, arg) IwTrace(chan, arg)
+#elif defined(QT_CORE_LIB) && defined(DEBUG)
+    #include <QDebug>
+    #define TLFXLOG(chan, arg) qDebug arg
 #else
     #define TLFXLOG(chan, arg)
 #endif
@@ -201,6 +205,9 @@ namespace TLFX
          */
         Emitter* GetEmitter(const char *name) const;
 
+        const std::vector<std::string>& AllEffects() const { return _effects_names; }
+        const std::vector<std::string>& AllEmitters() const { return _emitters_names; }
+
         bool AddSprite(AnimImage* image);
 
         virtual XMLLoader* CreateLoader() const = 0;
@@ -212,7 +219,9 @@ namespace TLFX
 
     protected:
         std::map<std::string, Effect*>  _effects;
+        std::vector<std::string>        _effects_names;
         std::map<std::string, Emitter*> _emitters;
+        std::vector<std::string>        _emitters_names;
         std::string                     _name;
         std::list<AnimImage*>           _shapeList;
 
