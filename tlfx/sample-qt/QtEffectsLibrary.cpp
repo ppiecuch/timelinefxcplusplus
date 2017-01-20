@@ -155,6 +155,7 @@ void QtParticleManager::Flush()
         Q_FOREACH(QGeometryData gd, opt) {
             gd.draw(_p, 0, gd.indexCount());
         }
+        dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->release();
         batch = QGeometryData(); // clear batch data
     }
 }

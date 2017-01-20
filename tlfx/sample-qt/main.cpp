@@ -39,6 +39,7 @@ private:
 
     QGLPainter m_p;
     QSize m_size;
+    QMatrix4x4 m_projm;
 public:
 	QPoint cursorPos;
 public:
@@ -60,20 +61,18 @@ public:
 
         m_pm->SetScreenSize(m_size.width(), m_size.height());
 
-        glClearColor(0,1,1,1);
+        glClearColor(0.99, 0.96, 0.89, 1);
         
         m_pm->Update();
 
         m_p.begin(this);
-        QMatrix4x4 projm;
-        projm.ortho(0, m_size.width(), 0, m_size.height(), -10, 10);
-        m_p.projectionMatrix() = projm;
+        m_p.projectionMatrix() = m_projm;
+        m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
         m_pm->DrawParticles();
         m_pm->Flush();
         m_p.disableEffect();
         m_p.end();    
     
-        glColor4f(1, 1, 1, 1);
         dbgSetStatusLine("Running ...");
         dbgFlush();
     }
@@ -114,6 +113,8 @@ public:
 	}
 	void resizeEvent(QResizeEvent *event) {
         m_size = event->size();
+        m_projm.setToIdentity();
+        m_projm.ortho(0, m_size.width(), 0, m_size.height(), -10, 10);
 	}
 	void mousePressEvent(QMouseEvent *event) {
 		cursorPos = QPoint(event->x(), event->y());
