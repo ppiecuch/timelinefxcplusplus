@@ -36,7 +36,8 @@ private:
     
     TLFX::EffectsLibrary *m_effects;
     QtParticleManager *m_pm;
-    
+
+    QGLPainter m_p;
     QSize m_size;
 public:
 	QPoint cursorPos;
@@ -57,42 +58,20 @@ public:
 	void render(QPainter *painter) {
 		Q_UNUSED(painter);
 
-        glViewport(0, 0, m_size.width(), m_size.height());
-        glOrtho(0, m_size.width(), 0, m_size.height(), -10, 10);
         m_pm->SetScreenSize(m_size.width(), m_size.height());
 
-        glClearColor(1,1,1,1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0,1,1,1);
         
         m_pm->Update();
 
-        glColor4f(0, 0, 0, 1);
-
-        //m_pm->DrawParticles();
-        //m_pm->Flush();
-
-         float vertices[12] =
-    {
-        -50.0, -50.0, -1.0,   // A
-        50.0, -50.0, -1.0,    // B
-        50.0, 50.0, 1.0,      // C
-        -50.0, 50.0, 1.0      // D
-    };
-    QGLBuilder quad;
-    QGeometryData data;
-    data.appendVertexArray(QArray<QVector3D>::fromRawData(
-            reinterpret_cast<const QVector3D*>(vertices), 4));
-    quad.addQuads(data);
-        QGLPainter p;
-        QList<QGeometryData> opt = quad.optimized();
-        p.begin(this);
-        Q_FOREACH(QGeometryData gd, opt) {
-            gd.draw(&p, 0, gd.count());
-            qDebug() << m_size << gd.count() << gd;
-        }
-        p.disableEffect();
-        p.end();
-    
+        m_p.begin(this);
+        QMatrix4x4 projm;
+        projm.ortho(0, m_size.width(), 0, m_size.height(), -10, 10);
+        m_p.projectionMatrix() = projm;
+        m_pm->DrawParticles();
+        m_pm->Flush();
+        m_p.disableEffect();
+        m_p.end();    
     
         glColor4f(1, 1, 1, 1);
         dbgSetStatusLine("Running ...");
@@ -107,10 +86,14 @@ public:
 		qDebug() << " OpenGL Version:" << (const char*)glGetString(GL_VERSION);
 		qDebug() << " GLSL Version:" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
+        glEnable( GL_TEXTURE_2D );
+
+        setTitle(QString("%1 (%2)").arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
+
         m_effects = new QtEffectsLibrary();
         m_effects->Load(":/data/particles/data.xml");
 
-        m_pm = new QtParticleManager(this);
+        m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
 
         TLFX::Effect *eff = m_effects->GetEffect("Area Effects/Swirly Balls");

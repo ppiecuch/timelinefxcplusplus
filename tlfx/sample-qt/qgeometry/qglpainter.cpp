@@ -81,8 +81,6 @@ QRgb qt_qgl_normalize_pick_color(QRgb color, bool is444 = false);
     \ingroup qt3d
     \ingroup qt3d::painting
 
-    TBD - lots of TBD
-
     All QGLPainter instances on a context share the same context state:
     matrices, effects, vertex attributes, etc.  For example, calling
     ortho() on one QGLPainter instance for a context will alter the

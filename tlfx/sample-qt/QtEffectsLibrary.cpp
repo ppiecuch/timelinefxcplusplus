@@ -54,11 +54,11 @@ QtImage::~QtImage()
         delete _texture;
 }
 
-QtParticleManager::QtParticleManager( QWindow *w, int particles /*= particleLimit*/, int layers /*= 1*/ )
+QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleLimit*/, int layers /*= 1*/ )
     : TLFX::ParticleManager(particles, layers)
     , _lastSprite(0)
     , _lastAdditive(true)
-    , _w(w)
+    , _p(p)
 {
 
 }
@@ -74,7 +74,7 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
 
     if (sprite != _lastSprite || additive != _lastAdditive)
         Flush();
-#if 0
+
     //uvs[index + 0] = {0, 0};
     batch.appendTexCoord(QVector2D(0, 0));
     //uvs[index + 1] = {1.0f, 0}
@@ -83,7 +83,7 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
     batch.appendTexCoord(QVector2D(1, 1));
     //uvs[index + 3] = {0, 1.0f};
     batch.appendTexCoord(QVector2D(0, 1));
-#endif
+
     /*
     verts[index + 0].x = px - x * scaleX;
     verts[index + 0].y = py - y * scaleY;
@@ -108,8 +108,8 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
     float x3 = x2;
     float y3 = y0;
 
-    float cos = cosf(rotation / 180.f * (float)M_PI);
-    float sin = sinf(rotation / 180.f * (float)M_PI);
+    float cos = cosf(rotation / 180.f * M_PI);
+    float sin = sinf(rotation / 180.f * M_PI);
 
     //verts[index + 0] = {px + x0 * cos - y0 * sin, py + x0 * sin + y0 * cos};
     //verts[index + 0].z = 1.0f;
@@ -126,8 +126,7 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
 
     for (int i = 0; i < 4; ++i) 
     {
-        //batch.appendColor(QColor(r, g, b, alpha));
-        batch.appendColor(QColor(255, 0, 255, 255));
+        batch.appendColor(QColor(r, g, b, alpha));
     }
     
     _lastSprite = sprite;
@@ -138,9 +137,10 @@ void QtParticleManager::Flush()
 {
     if (batch.count() && _lastSprite)
     {
-        dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->bind();
         glDisable( GL_DEPTH );
         glEnable( GL_BLEND );
+        glEnable( GL_TEXTURE_2D );
+        dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->bind();
         if (_lastAdditive) {
             // ALPHA_ADD
             glBlendFunc( GL_SRC_ALPHA, GL_ONE );
@@ -149,17 +149,12 @@ void QtParticleManager::Flush()
             glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         }
 
-        QGLPainter p;
         QGLBuilder builder;
         builder.addQuads(batch);
         QList<QGeometryData> opt = builder.optimized();
-        p.begin(_w);
         Q_FOREACH(QGeometryData gd, opt) {
-            gd.draw(&p, 0, gd.count(), QGL::Lines);
-            qDebug() << gd.count();
+            gd.draw(_p, 0, gd.indexCount());
         }
-        p.disableEffect();
-        p.end();
         batch = QGeometryData(); // clear batch data
     }
 }

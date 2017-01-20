@@ -17,7 +17,7 @@
 #include "qgeometry/qgeometrydata.h"
 
 class QOpenGLTexture;
-class QWindow;
+class QGLPainter;
 class XMLLoader;
 
 class QtImage : public TLFX::AnimImage
@@ -43,7 +43,7 @@ public:
 class QtParticleManager : public TLFX::ParticleManager
 {
 public:
-    QtParticleManager(QWindow *w, int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
+    QtParticleManager(QGLPainter *p, int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
     void Flush();
 
 protected:
@@ -65,7 +65,7 @@ protected:
     TLFX::AnimImage*_lastSprite;
     bool _lastAdditive;
     
-    QWindow *_w;
+    QGLPainter *_p;
 };
 
 #endif // _QTEFFECTSLIBRARY_H
