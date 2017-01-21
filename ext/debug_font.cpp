@@ -8,8 +8,8 @@
 
 #define TL fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 
-float kDebugFontSizeW = 8;	// default
-float kDebugFontSizeH = 16;
+static float kDebugFontSizeW = 8;	// default
+static float kDebugFontSizeH = 16;
 
 typedef struct {
 	const char *image;
@@ -83,6 +83,18 @@ void dbgLoadFont()
 	}
 }
 
+static float pixelScale = 1;
+void dbgSetPixelRatio(float scale)
+{
+    pixelScale = scale;
+}
+
+static bool inverted = false;
+void dbgToggleInvert()
+{
+    inverted = !inverted;
+}
+
 static bool changed = true;
 static void _AppendMessage(const char* fmt, va_list args)
 {
@@ -138,10 +150,10 @@ static uint32_t text_colors[16] = {
 };
 
 #define _flushLine() \
-	int base = 0; \
+	int base = inverted?0x100:0; \
 	for(unsigned char *p = (unsigned char*)string; *p; ++p) { \
 	    if (*p == 0xff) \
-	        base = base^0xff; /* inv on/off */ \
+	        base = base^0x100; /* inv on/off */ \
 	    else { \
 	        const int chr = *p+base; \
 	        text[cnt].v1 = xx + v0; text[cnt].t1 = chars[chr].t[0]; \
@@ -160,6 +172,9 @@ void dbgFlush()
 	int data[4];
 	glGetIntegerv(GL_VIEWPORT, data);
 
+    data[2] /= pixelScale;
+    data[3] /= pixelScale;
+    
 	const int rect_w = data[2] - data[2]%int(kDebugFontSizeW);
 	const int rect_h = data[3] - data[3]%int(kDebugFontSizeH);
 
@@ -188,7 +203,8 @@ void dbgFlush()
 	glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, debugtexturefont);	// select our font texture
     glDisable(GL_DEPTH_TEST);						// disables depth testing
-    glEnable(GL_BLEND); glBlendEquation(GL_MIN);
+    glEnable(GL_BLEND); 
+    if (inverted) glBlendEquation(GL_FUNC_ADD); else glBlendEquation(GL_MIN);
     glMatrixMode(GL_PROJECTION);					// select the Projection matrix
     glPushMatrix();                                 // store the Projection matrix
     glLoadIdentity();								// reset the Projection matrix
@@ -198,8 +214,8 @@ void dbgFlush()
     glLoadIdentity();								// reset the modelview matrix
     
     glUseProgram(0);
-    
-	glDisableClientState(GL_NORMAL_ARRAY);
+
+    glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);

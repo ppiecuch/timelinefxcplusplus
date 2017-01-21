@@ -580,7 +580,7 @@ static char const vertColorTexFragmentShader[] =
     "void main(void)\n"
     "{\n"
     "    mediump vec4 col = texture2D(tex, qt_TexCoord0.st);\n"
-    "    gl_FragColor = vec4(clamp(col.rgb * (1.0 - qt_Color.a) + qt_Color.rgb, 0.0, 1.0), col.a);\n"
+    "    gl_FragColor =  col * qt_Color;\n"
     "}\n";
 
 #endif

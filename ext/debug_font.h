@@ -48,6 +48,8 @@
 void dbgLoadFont();
 void dbgAppendMessage(const char* fmt, ...);
 void dbgSetStatusLine(const char* fmt, ...);
+void dbgSetPixelRatio(float scale);
+void dbgToggleInvert();
 void dbgFlush();
 
 #endif // of debug_font_H

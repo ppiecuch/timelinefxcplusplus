@@ -113,6 +113,8 @@ public:
         dbgAppendMessage(" >: next effect");
         dbgAppendMessage(" <: previous effect");
         dbgAppendMessage(" b: switch background");
+        dbgAppendMessage(" t: toggle foreground");
+        dbgSetPixelRatio(devicePixelRatio());
     }
 	void update() { renderLater(); }
 	void render() {
@@ -144,6 +146,7 @@ public:
 		switch(event->key()) {
 		case Qt::Key_Escape: quit(); break;
 		case Qt::Key_B: ++m_curr_bg; break;
+		case Qt::Key_T: dbgToggleInvert(); break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {
             ++m_curr_effect;
