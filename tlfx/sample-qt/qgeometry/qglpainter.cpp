@@ -1109,6 +1109,9 @@ void QGLPainterPrivate::createEffect(QGLPainter *painter)
         case QGL::FlatDecalTexture2D:
             effect = new QGLFlatDecalTextureEffect();
             break;
+        case QGL::VertColorTexture2D:
+            effect = new QGLVertColorTextureEffect();
+            break;
         case QGL::LitMaterial:
             effect = new QGLLitMaterialEffect();
             break;

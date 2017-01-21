@@ -88,6 +88,7 @@ namespace QGL
         FlatPerVertexColor,
         FlatReplaceTexture2D,
         FlatDecalTexture2D,
+        VertColorTexture2D,
         LitMaterial,
         LitDecalTexture2D,
         LitModulateTexture2D

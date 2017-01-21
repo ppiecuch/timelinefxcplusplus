@@ -28,8 +28,10 @@ public:
 
     virtual bool Load(const char *filename);
     QOpenGLTexture *GetTexture() const { return _texture; }
+    QString GetImageName() const { return _image; }
 
 protected:
+    QString _image;
     QOpenGLTexture *_texture;
 };
 
@@ -44,6 +46,7 @@ class QtParticleManager : public TLFX::ParticleManager
 {
 public:
     QtParticleManager(QGLPainter *p, int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
+    void Reset() { ClearAll(); batch = QGeometryData(); _lastSprite = 0; _lastAdditive = true; }
     void Flush();
 
 protected:

@@ -40,6 +40,8 @@ bool QtImage::Load( const char *filename )
     _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
     _texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
+    _image = f.fileName();
+
     return true;
 }
 
@@ -153,6 +155,7 @@ void QtParticleManager::Flush()
         builder.addQuads(batch);
         QList<QGeometryData> opt = builder.optimized();
         Q_FOREACH(QGeometryData gd, opt) {
+            qDebug() << dynamic_cast<QtImage*>(_lastSprite)->GetImageName();
             gd.draw(_p, 0, gd.indexCount());
         }
         dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->release();

@@ -71,6 +71,7 @@ class QGLFlatColorEffectPrivate;
 class QGLPerVertexColorEffectPrivate;
 class QGLFlatTextureEffectPrivate;
 class QGLFlatDecalTextureEffectPrivate;
+class QGLVertColorTextureEffectPrivate;
 class QGLLitMaterialEffectPrivate;
 class QOpenGLShaderProgram;
 
@@ -137,6 +138,22 @@ private:
 
     Q_DECLARE_PRIVATE(QGLFlatDecalTextureEffect)
     Q_DISABLE_COPY(QGLFlatDecalTextureEffect)
+};
+
+class QGLVertColorTextureEffect : public QGLAbstractEffect
+{
+public:
+    QGLVertColorTextureEffect();
+    virtual ~QGLVertColorTextureEffect();
+
+    void setActive(QGLPainter *painter, bool flag);
+    void update(QGLPainter *painter, QGLPainter::Updates updates);
+
+private:
+    QScopedPointer<QGLVertColorTextureEffectPrivate> d_ptr;
+
+    Q_DECLARE_PRIVATE(QGLVertColorTextureEffect)
+    Q_DISABLE_COPY(QGLVertColorTextureEffect)
 };
 
 class QGLLitMaterialEffect : public QGLAbstractEffect

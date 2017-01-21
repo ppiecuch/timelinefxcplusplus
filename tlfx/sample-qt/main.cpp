@@ -36,6 +36,8 @@ private:
     
     TLFX::EffectsLibrary *m_effects;
     QtParticleManager *m_pm;
+    quint32 m_curr_effect; // currently selected effect
+    quint32 m_curr_bg;
 
     QGLPainter m_p;
     QSize m_size;
@@ -48,7 +50,7 @@ public:
 		, m_auto_refresh(true)
 		, m_context(0)
 		, m_device(0)
-        , m_effects(0), m_pm(0)
+        , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
@@ -58,22 +60,30 @@ public:
 	
 	void render(QPainter *painter) {
 		Q_UNUSED(painter);
+        
+        const int bg_cnt = 3;
+        static float bg[bg_cnt][4] = {
+            {0.99, 0.96, 0.89, 1},
+            {0, 0, 0, 1},
+            {1, 1, 1, 1}
+        };
 
         m_pm->SetScreenSize(m_size.width(), m_size.height());
 
-        glClearColor(0.99, 0.96, 0.89, 1);
+        int bg_index = m_curr_bg%bg_cnt;
+        glClearColor(bg[bg_index][0], bg[bg_index][1], bg[bg_index][2], bg[bg_index][3]);
         
         m_pm->Update();
 
         m_p.begin(this);
         m_p.projectionMatrix() = m_projm;
-        m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
+        m_p.setStandardEffect(QGL::VertColorTexture2D);
         m_pm->DrawParticles();
         m_pm->Flush();
         m_p.disableEffect();
         m_p.end();    
     
-        dbgSetStatusLine("Running ...");
+        dbgSetStatusLine(QString("Running effect: %1").arg(m_effects->AllEffects()[m_curr_effect].c_str()).toLatin1().constData());
         dbgFlush();
     }
 	
@@ -85,8 +95,6 @@ public:
 		qDebug() << " OpenGL Version:" << (const char*)glGetString(GL_VERSION);
 		qDebug() << " GLSL Version:" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
-        glEnable( GL_TEXTURE_2D );
-
         setTitle(QString("%1 (%2)").arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
 
         m_effects = new QtEffectsLibrary();
@@ -95,13 +103,16 @@ public:
         m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
 
-        TLFX::Effect *eff = m_effects->GetEffect("Area Effects/Swirly Balls");
+        TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
         TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
 
         copy->SetPosition(0, 0);
         m_pm->AddEffect(copy);
 
         dbgLoadFont();
+        dbgAppendMessage(" >: next effect");
+        dbgAppendMessage(" <: previous effect");
+        dbgAppendMessage(" b: switch background");
     }
 	void update() { renderLater(); }
 	void render() {
@@ -132,6 +143,28 @@ public:
 	void keyPressEvent(QKeyEvent* event) {
 		switch(event->key()) {
 		case Qt::Key_Escape: quit(); break;
+		case Qt::Key_B: ++m_curr_bg; break;
+        case Qt::Key_Greater: 
+        case Qt::Key_Period: {
+            ++m_curr_effect;
+            if (m_curr_effect == m_effects->AllEffects()[m_curr_effect].size()) 
+                m_curr_effect = 0;
+            m_pm->Reset();
+            TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
+            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
+            m_pm->AddEffect(copy);
+        } break;
+        case Qt::Key_Less: 
+        case Qt::Key_Comma: {
+            if (m_curr_effect == 0) 
+                m_curr_effect = m_effects->AllEffects()[m_curr_effect].size() - 1;
+            else 
+                --m_curr_effect;
+            m_pm->Reset();
+            TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
+            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
+            m_pm->AddEffect(copy);
+        } break;
 		default: event->ignore();
 			break;
 		}
@@ -191,7 +224,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
 	QSurfaceFormat surface_format = QSurfaceFormat::defaultFormat();
-	surface_format.setAlphaBufferSize( 8 );
+	surface_format.setAlphaBufferSize( 0 );
 	surface_format.setDepthBufferSize( 24 );
 	// surface_format.setRedBufferSize( 8 );
 	// surface_format.setBlueBufferSize( 8 );
