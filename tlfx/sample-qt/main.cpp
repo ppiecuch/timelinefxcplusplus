@@ -212,8 +212,10 @@ public:
 	}
 	void resizeEvent(QResizeEvent *event) {
         m_size = event->size();
+        guard.lock();
         m_projm.setToIdentity();
-        m_projm.ortho(0, m_size.width(), 0, m_size.height(), -10, 10);
+        m_projm.ortho(0, m_size.width(), m_size.height(), 0, -10, 10);
+        guard.unlock();
 	}
 	void mousePressEvent(QMouseEvent *event) {
 		cursorPos = QPoint(event->x(), event->y());

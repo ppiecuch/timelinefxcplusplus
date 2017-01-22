@@ -1256,6 +1256,26 @@ void QGLPainter::clearAttributes()
 }
 
 /*!
+    Unbind and clears current buffers cached by painter. It is necessary
+    if buffers has been changed outside of the painter and has to be bind
+    again. 
+*/
+void QGLPainter::clearBoundBuffers()
+{
+    Q_D(QGLPainter);
+    QGLPAINTER_CHECK_PRIVATE();
+    // Unbind the current vertex and index buffers.
+    if (d->boundVertexBuffer) {
+        QOpenGLBuffer::release(QOpenGLBuffer::VertexBuffer);
+        d->boundVertexBuffer = 0;
+    }
+    if (d->boundIndexBuffer) {
+        QOpenGLBuffer::release(QOpenGLBuffer::IndexBuffer);
+        d->boundIndexBuffer = 0;
+    }
+}
+
+/*!
     Sets a vertex \a attribute on the current GL context to \a value.
 
     The vertex attribute is bound to the GL state on the index

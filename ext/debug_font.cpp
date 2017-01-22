@@ -221,7 +221,7 @@ void dbgFlush()
     glBindTexture(GL_TEXTURE_2D, debugtexturefont);	// select our font texture
     glDisable(GL_DEPTH_TEST);						// disables depth testing
     glEnable(GL_BLEND); 
-    if (inverted) glBlendEquation(GL_FUNC_ADD); else glBlendEquation(GL_MIN);
+    glBlendEquation(inverted?GL_MAX:GL_MIN);        // font can be black or white
     glMatrixMode(GL_PROJECTION);					// select the Projection matrix
     glPushMatrix();                                 // store the Projection matrix
     glLoadIdentity();								// reset the Projection matrix

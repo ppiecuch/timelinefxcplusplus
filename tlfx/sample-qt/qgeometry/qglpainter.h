@@ -294,6 +294,8 @@ public:
 
     QGLAttributeSet attributes() const;
     void clearAttributes();
+    
+    void clearBoundBuffers();
 
     void setVertexAttribute
         (QGL::VertexAttribute attribute, const QGLAttributeValue& value);

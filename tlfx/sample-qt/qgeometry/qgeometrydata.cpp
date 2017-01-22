@@ -864,7 +864,10 @@ void QGeometryData::draw(QGLPainter *painter, int start, int count, GLenum mode,
     if (d && d->indices.size() && d->count)
     {
         upload();
+        
         painter->clearAttributes();
+        painter->clearBoundBuffers();
+        
         if (mode==QGL::Points) {
 #if !defined(QT_OPENGL_ES_2)
             ::glPointSize(drawWidth);
