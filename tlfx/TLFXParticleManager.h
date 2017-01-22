@@ -302,7 +302,7 @@ namespace TLFX
     protected:
         std::vector<std::vector<ParticleList> > _inUse;
         std::stack<Particle*>                _unused;
-        int                                  _inUseCount;                           // the Particle doesn't have to be managed by ParticleManager (seed GrabParticle)
+        int                                  _inUseCount; // the Particle doesn't have to be managed by ParticleManager (seed GrabParticle)
 
         std::vector<std::set<Effect*> >      _effects;
 
@@ -333,7 +333,7 @@ namespace TLFX
 
         float                                _currentTime;
         int                                  _currentTick;
-        int                                  _idleTimeLimit;         // The time in game ticks before idle effects are automatically deleted
+        int                                  _idleTimeLimit; // The time in game ticks before idle effects are automatically deleted
 
         int                                  _renderCount;
         float                                _currentTween;
@@ -345,8 +345,7 @@ namespace TLFX
         void DrawEffect(Effect *effect);
         void DrawParticle(Particle *particle);
 
-        virtual void DrawSprite(AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation,
-            float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive) = 0;
+        virtual void DrawSprite(Particle *p, AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive) = 0;
     };
 
 } // namespace TLFX

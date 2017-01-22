@@ -655,7 +655,7 @@ namespace TLFX
                         _tv = p->GetCurrentFrame();
                     }
 					
-                    DrawSprite(sprite, _px, _py, _tv, x, y, rotation, scaleX, scaleY, r, g, b, a, blend == Emitter::BMLightBlend);
+                    DrawSprite(p, sprite, _px, _py, _tv, x, y, rotation, scaleX, scaleY, r, g, b, a, blend == Emitter::BMLightBlend);
                     // ++rendercount
                 }
             }

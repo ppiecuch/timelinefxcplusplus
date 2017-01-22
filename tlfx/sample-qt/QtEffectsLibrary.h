@@ -13,6 +13,7 @@
 #include "TLFXEffectsLibrary.h"
 #include "TLFXParticleManager.h"
 #include "TLFXAnimImage.h"
+#include "TLFXParticle.h"
 
 #include "qgeometry/qgeometrydata.h"
 
@@ -48,14 +49,13 @@ public:
     QtParticleManager(QGLPainter *p, int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
     void Reset() { ClearAll(); batch = QGeometryData(); _lastSprite = 0; _lastAdditive = true; }
     void Flush();
-
-    bool isForceBlend() { return _forceBlend; }
-    void setForceBlend(bool state) { _forceBlend = state; }
-    void toggleForceBlend() { _forceBlend = !_forceBlend; }
+    
+    bool IsForceBlend() { return _forceBlend; }
+    void SetForceBlend(bool state) { _forceBlend = state; }
+    void ToggleForceBlend() { _forceBlend = !_forceBlend; }
 
 protected:
-    virtual void DrawSprite(TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation,
-                            float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive);
+    virtual void DrawSprite(TLFX::Particle *p, TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive);
 
     // batching
     struct Batch

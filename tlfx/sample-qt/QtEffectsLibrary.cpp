@@ -65,9 +65,10 @@ QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleL
 
 }
 
-void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
+void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
 {
-    Q_ASSERT(frame == 0);
+    if(frame > 1)
+        qWarning() << "[DrawSprite] Invalid frame " << frame;
 
     #define qFF(C) C*(255.999)
 
@@ -139,6 +140,8 @@ void QtParticleManager::Flush()
 {
     if (batch.count() && _lastSprite)
     {
+        Q_ASSERT(_p);
+
         glDisable( GL_DEPTH );
         glEnable( GL_BLEND );
         glEnable( GL_TEXTURE_2D );

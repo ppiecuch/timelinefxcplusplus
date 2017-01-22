@@ -2,6 +2,7 @@
 #include <QElapsedTimer>
 #include <QDirIterator>
 #include <QMouseEvent>
+#include <QMutex>
 #include <QPainter>
 #include <QWindow>
 #include <QOpenGLContext>
@@ -115,6 +116,8 @@ private:
     quint32 m_curr_bg; // current background style
     qint32 m_msg_line; // line with blending message
 
+    QMutex guard;
+    
     QGLPainter m_p;
     QSize m_size;
     QMatrix4x4 m_projm;
@@ -143,6 +146,8 @@ public:
 
         glClearColor(bg[m_curr_bg].color[0], bg[m_curr_bg].color[1], bg[m_curr_bg].color[2], bg[m_curr_bg].color[3]);
         
+        guard.lock();
+
         m_pm->Update();
 
         m_p.begin(this);
@@ -151,11 +156,13 @@ public:
         m_pm->DrawParticles();
         m_pm->Flush();
         m_p.disableEffect();
-        m_p.end();    
-    
+        m_p.end();
+
+        guard.unlock();
+
         dbgSetStatusLine(QString("Running effect: %1 | blending: %2 | FPS:%3")
         .arg(m_effects->AllEffects()[m_curr_effect].c_str())
-        .arg(m_pm->isForceBlend()?"force blend":"effect blend")
+        .arg(m_pm->IsForceBlend()?"force blend":"effect blend")
         .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
         );
         dbgFlush();
@@ -189,10 +196,11 @@ public:
         dbgAppendMessage(" b: switch background");
         dbgAppendMessage(" t: toggle foreground");
         dbgAppendMessage(" m: toggle blending mode");
+        dbgAppendMessage(" p: toggle pause");
         dbgSetPixelRatio(devicePixelRatio());
 
         dbgSetInvert(bg[m_curr_bg].invert);
-        m_pm->setForceBlend(bg[m_curr_bg].force_blend);
+        m_pm->SetForceBlend(bg[m_curr_bg].force_blend);
     }
 	void update() { renderLater(); }
 	void render() {
@@ -224,17 +232,20 @@ public:
 		switch(event->key()) {
 		case Qt::Key_Escape: quit(); break;
 		case Qt::Key_B: ++m_curr_bg %= Bg_cnt; break;
-		case Qt::Key_M: m_pm->toggleForceBlend(); break;
+		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
+		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {
             ++m_curr_effect;
             if (m_curr_effect == m_effects->AllEffects()[m_curr_effect].size()) 
                 m_curr_effect = 0;
+            guard.lock();
             m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
             TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
             m_pm->AddEffect(copy);
+            guard.unlock();
         } break;
         case Qt::Key_Less: 
         case Qt::Key_Comma: {
@@ -242,10 +253,12 @@ public:
                 m_curr_effect = m_effects->AllEffects()[m_curr_effect].size() - 1;
             else 
                 --m_curr_effect;
+            guard.lock();
             m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
             TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
             m_pm->AddEffect(copy);
+            guard.unlock();
         } break;
 		default: event->ignore();
 			break;

@@ -60,7 +60,7 @@ namespace TLFX
 
         base::Update();
 
-        if (_age > _lifeTime || _dead == 2)                 // if dead=2 then that means its reached the end of the line (in kill mode) for line traversal effects
+        if (_age > _lifeTime || _dead == 2) // if dead=2 then that means its reached the end of the line (in kill mode) for line traversal effects
         {
             _dead = 1;
             if (_children.empty())
