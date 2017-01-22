@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QDirIterator>
 #include <QMouseEvent>
 #include <QPainter>
@@ -26,6 +27,80 @@
 
 // == Qt Window ==
 
+static int const CAPTURED_FRAMES_NUM   = 30;    // 30 captures
+static float const AVG_TIME            = 0.5;   // 500 millisecondes
+
+class FPSComputer
+{
+    float history[CAPTURED_FRAMES_NUM]; 
+    int indx; long int total;
+    float timestamp, average, last;
+    const float step;
+    
+	QElapsedTimer time_, timer_;
+    
+public:
+    FPSComputer(void)
+    : indx(0), total(0)
+    , timestamp(0)
+    , step(AVG_TIME / CAPTURED_FRAMES_NUM)
+    , average(0), last(0)
+    {
+        time_.start(); timer_.start();
+        for (int i = 0; i < CAPTURED_FRAMES_NUM; ++i) history[i] = 0;
+    }
+
+    float ComputeFPS()
+    {
+        const float delta_time = timer_.restart()/1000.;
+        const float total_time = time_.elapsed()/1000.;
+
+        float fpsFrame = 1. / delta_time;
+        if (total_time - last > step)
+        {
+            last = total_time;
+            ++indx %= CAPTURED_FRAMES_NUM;
+            average -= history[indx];
+            history[indx] = fpsFrame / CAPTURED_FRAMES_NUM;
+            average += history[indx];
+            ++total;
+        }
+        return average;
+    }
+
+    float ComputeFPS(float delta_time, float total_time)
+    {
+        float fpsFrame = 1. / delta_time;
+        if (total_time - last > step)
+        {
+            last = total_time;
+            ++indx %= CAPTURED_FRAMES_NUM;
+            average -= history[indx];
+            history[indx] = fpsFrame / CAPTURED_FRAMES_NUM;
+            average += history[indx];
+            ++total;
+        }
+        return average;
+    }
+    
+    float GetLastAverage(void) { return average; }
+    long int GetTotalFrames(void) { return total; }
+};
+
+static FPSComputer fps;
+
+
+const int Bg_cnt = 3;
+static struct {
+    float color[4];
+    bool force_blend;
+    bool invert;
+} bg[Bg_cnt] = {
+    {{0, 0, 0, 1}, false, true},
+    {{0.99, 0.96, 0.89, 1}, true, false},
+    {{1, 1, 1, 1}, true, false}
+};
+
 class Window : public QWindow, protected QOpenGLFunctions
 {
 	Q_OBJECT
@@ -37,7 +112,8 @@ private:
     TLFX::EffectsLibrary *m_effects;
     QtParticleManager *m_pm;
     quint32 m_curr_effect; // currently selected effect
-    quint32 m_curr_bg;
+    quint32 m_curr_bg; // current background style
+    qint32 m_msg_line; // line with blending message
 
     QGLPainter m_p;
     QSize m_size;
@@ -60,18 +136,12 @@ public:
 	
 	void render(QPainter *painter) {
 		Q_UNUSED(painter);
-        
-        const int bg_cnt = 3;
-        static float bg[bg_cnt][4] = {
-            {0.99, 0.96, 0.89, 1},
-            {0, 0, 0, 1},
-            {1, 1, 1, 1}
-        };
 
+        fps.ComputeFPS();
+        
         m_pm->SetScreenSize(m_size.width(), m_size.height());
 
-        int bg_index = m_curr_bg%bg_cnt;
-        glClearColor(bg[bg_index][0], bg[bg_index][1], bg[bg_index][2], bg[bg_index][3]);
+        glClearColor(bg[m_curr_bg].color[0], bg[m_curr_bg].color[1], bg[m_curr_bg].color[2], bg[m_curr_bg].color[3]);
         
         m_pm->Update();
 
@@ -83,7 +153,11 @@ public:
         m_p.disableEffect();
         m_p.end();    
     
-        dbgSetStatusLine(QString("Running effect: %1").arg(m_effects->AllEffects()[m_curr_effect].c_str()).toLatin1().constData());
+        dbgSetStatusLine(QString("Running effect: %1 | blending: %2 | FPS:%3")
+        .arg(m_effects->AllEffects()[m_curr_effect].c_str())
+        .arg(m_pm->isForceBlend()?"force blend":"effect blend")
+        .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
+        );
         dbgFlush();
     }
 	
@@ -95,7 +169,7 @@ public:
 		qDebug() << " OpenGL Version:" << (const char*)glGetString(GL_VERSION);
 		qDebug() << " GLSL Version:" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
-        setTitle(QString("%1 (%2)").arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
+        setTitle(QString("Qt %1 - %2 (%3)").arg(QT_VERSION_STR).arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
 
         m_effects = new QtEffectsLibrary();
         m_effects->Load(":/data/particles/data.xml");
@@ -114,7 +188,11 @@ public:
         dbgAppendMessage(" <: previous effect");
         dbgAppendMessage(" b: switch background");
         dbgAppendMessage(" t: toggle foreground");
+        dbgAppendMessage(" m: toggle blending mode");
         dbgSetPixelRatio(devicePixelRatio());
+
+        dbgSetInvert(bg[m_curr_bg].invert);
+        m_pm->setForceBlend(bg[m_curr_bg].force_blend);
     }
 	void update() { renderLater(); }
 	void render() {
@@ -145,7 +223,8 @@ public:
 	void keyPressEvent(QKeyEvent* event) {
 		switch(event->key()) {
 		case Qt::Key_Escape: quit(); break;
-		case Qt::Key_B: ++m_curr_bg; break;
+		case Qt::Key_B: ++m_curr_bg %= Bg_cnt; break;
+		case Qt::Key_M: m_pm->toggleForceBlend(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {

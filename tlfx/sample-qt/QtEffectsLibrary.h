@@ -49,6 +49,10 @@ public:
     void Reset() { ClearAll(); batch = QGeometryData(); _lastSprite = 0; _lastAdditive = true; }
     void Flush();
 
+    bool isForceBlend() { return _forceBlend; }
+    void setForceBlend(bool state) { _forceBlend = state; }
+    void toggleForceBlend() { _forceBlend = !_forceBlend; }
+
 protected:
     virtual void DrawSprite(TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation,
                             float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a, bool additive);
@@ -66,7 +70,7 @@ protected:
     std::list<Batch> _batch;
     QGeometryData batch;
     TLFX::AnimImage*_lastSprite;
-    bool _lastAdditive;
+    bool _lastAdditive, _forceBlend;
     
     QGLPainter *_p;
 };

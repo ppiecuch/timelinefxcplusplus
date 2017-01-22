@@ -59,7 +59,7 @@ QtImage::~QtImage()
 QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleLimit*/, int layers /*= 1*/ )
     : TLFX::ParticleManager(particles, layers)
     , _lastSprite(0)
-    , _lastAdditive(true)
+    , _lastAdditive(true), _forceBlend(false)
     , _p(p)
 {
 
@@ -74,7 +74,7 @@ void QtParticleManager::DrawSprite( TLFX::AnimImage* sprite, float px, float py,
     quint8 alpha = qFF(a);
     if (alpha == 0 || scaleX == 0 || scaleY == 0) return;
 
-    if (sprite != _lastSprite || additive != _lastAdditive)
+    if ((sprite != _lastSprite) || ((additive != _lastAdditive) && !_forceBlend))
         Flush();
 
     //uvs[index + 0] = {0, 0};
@@ -143,7 +143,7 @@ void QtParticleManager::Flush()
         glEnable( GL_BLEND );
         glEnable( GL_TEXTURE_2D );
         dynamic_cast<QtImage*>(_lastSprite)->GetTexture()->bind();
-        if (_lastAdditive) {
+        if (_lastAdditive && !_forceBlend) {
             // ALPHA_ADD
             glBlendFunc( GL_SRC_ALPHA, GL_ONE );
         } else {

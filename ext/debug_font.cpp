@@ -90,13 +90,17 @@ void dbgSetPixelRatio(float scale)
 }
 
 static bool inverted = false;
+void dbgSetInvert(bool inv)
+{
+    inverted = inv;
+}
 void dbgToggleInvert()
 {
     inverted = !inverted;
 }
 
 static bool changed = true;
-static void _AppendMessage(const char* fmt, va_list args)
+static int _AppendMessage(const char* fmt, va_list args)
 {
   char *message = NULL;
   vasprintf(&message, fmt, args);
@@ -106,6 +110,19 @@ static void _AppendMessage(const char* fmt, va_list args)
 	    messages.erase(messages.begin());
 	    changed = true;
 	  }
+	  return messages.size() - 1;
+  }
+  return -1;
+}
+
+static void _UpdateMessage(int line, const char* fmt, va_list args)
+{
+  char *message = NULL;
+  vasprintf(&message, fmt, args);
+  if (message && messages.size()>line)
+  {
+    messages[line].assign(message);
+    changed = true;
   }
 }
 
@@ -236,11 +253,20 @@ void dbgFlush()
     glEnable(GL_DEPTH_TEST);						// enables depth testing
 }
 
-void dbgAppendMessage(const char* fmt, ...)
+int dbgAppendMessage(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    _AppendMessage(fmt, args);
+    int ln = _AppendMessage(fmt, args);
+    va_end(args);
+    return ln;
+}
+
+void dbgUpdateMessage(int line, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    _UpdateMessage(line, fmt, args);
     va_end(args);
 }
 

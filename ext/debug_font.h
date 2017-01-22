@@ -46,9 +46,11 @@
 #define  BOX_SUDLR    "\305"  /* ┼ */
 
 void dbgLoadFont();
-void dbgAppendMessage(const char* fmt, ...);
+int dbgAppendMessage(const char* fmt, ...);
+void dbgUpdateMessage(int line, const char* fmt, ...);
 void dbgSetStatusLine(const char* fmt, ...);
 void dbgSetPixelRatio(float scale);
+void dbgSetInvert(bool inv);
 void dbgToggleInvert();
 void dbgFlush();
 
