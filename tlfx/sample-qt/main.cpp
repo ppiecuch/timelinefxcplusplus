@@ -197,6 +197,7 @@ public:
         dbgAppendMessage(" t: toggle foreground");
         dbgAppendMessage(" m: toggle blending mode");
         dbgAppendMessage(" p: toggle pause");
+        dbgAppendMessage(" r: restart effect");
         dbgSetPixelRatio(devicePixelRatio());
 
         dbgSetInvert(bg[m_curr_bg].invert);
@@ -242,6 +243,7 @@ public:
 		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
+		case Qt::Key_R: break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {
             ++m_curr_effect;
