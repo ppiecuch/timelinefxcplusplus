@@ -233,7 +233,12 @@ public:
 	void keyPressEvent(QKeyEvent* event) {
 		switch(event->key()) {
 		case Qt::Key_Escape: quit(); break;
-		case Qt::Key_B: ++m_curr_bg %= Bg_cnt; break;
+		case Qt::Key_B: 
+            ++m_curr_bg %= Bg_cnt; 
+            
+            dbgSetInvert(bg[m_curr_bg].invert);
+            m_pm->SetForceBlend(bg[m_curr_bg].force_blend);
+            break;
 		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
