@@ -186,8 +186,8 @@ public:
 
         TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
         TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-
         copy->SetPosition(0, 0);
+
         m_pm->AddEffect(copy);
 
         dbgLoadFont();
