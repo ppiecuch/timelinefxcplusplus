@@ -225,7 +225,7 @@ namespace TLFX
         std::string                     _name;
         std::list<AnimImage*>           _shapeList;
 
-        static float                    _updateFrequency;                  //  times per second
+        static float                    _updateFrequency; //  times per second
         static float                    _updateTime;
         static float                    _currentUpdateTime;
         static float                    _lookupFrequency;

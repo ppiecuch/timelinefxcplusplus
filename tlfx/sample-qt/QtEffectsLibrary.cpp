@@ -2,16 +2,26 @@
 #include "QtEffectsLibrary.h"
 #include "TLFXPugiXMLLoader.h"
 
+#include <QFile>
 #include <QOpenGLContext>
 #include <QOpenGLTexture>
-#include <QFile>
 #include <QImage>
+#include <QScreen>
+#include <QGuiApplication>
 
 #include <stdint.h>
 #include <cmath>
 
 #include "qgeometry/qglpainter.h"
 #include "qgeometry/qglbuilder.h"
+
+QtEffectsLibrary::QtEffectsLibrary()
+{
+    if (qApp == 0)
+        qWarning("[QtEffectsLibrary] Application is not initialized.");
+    else
+        SetUpdateFrequency(qApp->primaryScreen()->refreshRate());
+}
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
@@ -62,7 +72,6 @@ QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleL
     , _lastAdditive(true), _forceBlend(false)
     , _p(p)
 {
-
 }
 
 void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )

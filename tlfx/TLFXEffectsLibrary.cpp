@@ -80,8 +80,7 @@ const int   EffectsLibrary::motionVariationInterval = 30;
 int EffectsLibrary::particlesCreated = 0;
 #endif
 
-
-float EffectsLibrary::_updateFrequency           = 30.0f;                  //  times per second
+float EffectsLibrary::_updateFrequency           = 30.0f; // default times per second
 float EffectsLibrary::_updateTime                = 1000.0f / EffectsLibrary::_updateFrequency;
 float EffectsLibrary::_currentUpdateTime         = EffectsLibrary::_updateFrequency;
 float EffectsLibrary::_lookupFrequency           = EffectsLibrary::_updateTime;
@@ -90,7 +89,6 @@ float EffectsLibrary::_lookupFrequencyOverTime   = 1.0f;
 
 EffectsLibrary::EffectsLibrary()
 {
-
 }
 
 EffectsLibrary::~EffectsLibrary()

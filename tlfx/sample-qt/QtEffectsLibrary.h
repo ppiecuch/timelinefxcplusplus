@@ -39,6 +39,7 @@ protected:
 class QtEffectsLibrary : public TLFX::EffectsLibrary
 {
 public:
+    QtEffectsLibrary();
     virtual TLFX::XMLLoader* CreateLoader() const;
     virtual TLFX::AnimImage* CreateImage() const;
 };

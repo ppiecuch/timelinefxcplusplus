@@ -235,7 +235,7 @@ public:
 		case Qt::Key_Escape: quit(); break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
-            
+            // update default settings for this visual:
             dbgSetInvert(bg[m_curr_bg].invert);
             m_pm->SetForceBlend(bg[m_curr_bg].force_blend);
             break;
