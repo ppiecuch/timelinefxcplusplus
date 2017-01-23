@@ -243,7 +243,14 @@ public:
 		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
-		case Qt::Key_R: break;
+		case Qt::Key_R: {
+            guard.lock();
+            m_pm->Reset();
+            TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
+            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
+            m_pm->AddEffect(copy);
+            guard.unlock();
+        } break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {
             ++m_curr_effect;
