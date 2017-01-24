@@ -1,8 +1,10 @@
 Qt implementation of TimelineFX particles preview (Work in progress).
 
+Based on Marmalade loaded with few Qt changes. Should work on every platform however I have tested this only on OSX.
+Effects loaded from resoures (data.qrc).
 ***
 
-How to build (tested with Qt 5.6).
+How to build (tested with Qt 5.6 - on OSX/Retina).
 
 ```bash
 git clone https://github.com/ppiecuch/timelinefxcplusplus.git
@@ -16,3 +18,4 @@ Example of preview window:
 ![Alt text](/tlfx/sample-qt/screens/screen1.png?raw=true "Effect 1")
 ![Alt text](/tlfx/sample-qt/screens/screen2.png?raw=true "Effect 2")
 ![Alt text](/tlfx/sample-qt/screens/screen3.png?raw=true "Effect 3")
+![Alt text](/tlfx/sample-qt/screens/screen4.jpg?raw=true "Effect 4")
