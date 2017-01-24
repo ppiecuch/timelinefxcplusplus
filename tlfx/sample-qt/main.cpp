@@ -233,7 +233,8 @@ public:
 	}
 	void keyPressEvent(QKeyEvent* event) {
 		switch(event->key()) {
-		case Qt::Key_Escape: quit(); break;
+        case Qt::Key_Q:
+		case Qt::Key_Escape: close(); break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
             // update default settings for this visual:
