@@ -23,6 +23,8 @@ INCLUDEPATH += ../../ext ..
 SOURCES += \
     ../../ext/pugixml.cpp \
     ../../ext/debug_font.cpp \
+    ../../ext/vogl_miniz.cpp \
+    ../../ext/vogl_miniz_zip.cpp \
     ../TLFXAnimImage.cpp \
     ../TLFXAttributeNode.cpp \
     ../TLFXEffect.cpp \
@@ -43,6 +45,8 @@ HEADERS += \
     ../../ext/pugixml.hpp \
     ../../ext/debug_font.h \
     ../../ext/qopenglerrorcheck.h \
+    ../../ext/vogl_miniz.h \
+    ../../ext/vogl_miniz_zip.h \
     ../TLFXAnimImage.h \
     ../TLFXAttributeNode.h \
     ../TLFXEffect.h \
