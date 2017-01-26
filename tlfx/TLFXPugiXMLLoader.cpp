@@ -31,7 +31,7 @@ namespace TLFX
                 // Try to extract all the files to the heap.
                 size_t uncomp_size;
                 void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
-                if (!p)
+                if (p == 0)
                 {
                     snprintf(_error, sizeof(_error), "Failed to extract %s!", filename);
                     return false;
@@ -39,7 +39,7 @@ namespace TLFX
 
                 printf("[PugiXMLLoader] Successfully extracted file \"%s\", size %u\n", filename, (uint)uncomp_size);
 
-                pugi::xml_parse_result result = _doc.load_buffer_inplace_own(p, uncomp_size);
+                pugi::xml_parse_result result = _doc.load_buffer_inplace(p, uncomp_size);
 
                 // We're done.
                 mz_free(p);

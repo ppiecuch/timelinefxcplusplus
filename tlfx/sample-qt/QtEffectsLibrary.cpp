@@ -3,6 +3,8 @@
 #include "TLFXPugiXMLLoader.h"
 
 #include <QFile>
+#include <QDir>
+#include <QFileInfo>
 #include <QOpenGLContext>
 #include <QOpenGLTexture>
 #include <QImage>
@@ -93,6 +95,11 @@ QMap<QString, QSharedPointer<QOpenGLTexture>> s_openGLTextureDB;
 
 bool QtImage::Load( const char *filename )
 {
+    if (filename==0 || strlen(filename)==0)
+    {
+        qWarning() << "Empty image filename";
+        return false;
+    }
     if (!_library.isEmpty()) {
         struct zip_archive_t {
             zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
@@ -107,24 +114,43 @@ bool QtImage::Load( const char *filename )
         if (status)
         {
             // Try to extract all the files to the heap.
-            size_t uncomp_size;
-            void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
-            if (!p)
+            QStringList variants; 
+            variants
+                << filename
+                << QFileInfo(filename).fileName()
+                << QFileInfo(QString(filename).replace("\\","/")).fileName();
+            Q_FOREACH(QString fn, variants)
             {
-                qWarning() << "Failed to extract " << filename;
-                return false;
+                size_t uncomp_size;
+                void *p = mz_zip_extract_file_to_heap(&zip_archive, fn.toUtf8().constData(), &uncomp_size, 0);
+                if (p == 0) 
+                {
+                    continue; // Try next name
+                }
+
+                qDebug() << "[QtImage] Successfully extracted file" << fn << "size" << uncomp_size;
+
+                QImage img = QImage::fromData((const uchar *)p, uncomp_size);
+                if (img.isNull())
+                {
+                    qWarning() << "Failed to create image: " << filename;
+                }
+                else
+                {
+                    _texture = new QOpenGLTexture(img.mirrored());
+                    _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+                    _texture->setMagnificationFilter(QOpenGLTexture::Linear);
+
+                    _image = filename;
+                }
+
+                // We're done.
+                mz_free(p);
+
+                return true;
             }
-
-            qDebug() << "[QtImage] Successfully extracted file" << filename << "size" << uncomp_size;
-
-            _texture = new QOpenGLTexture(QImage::fromData((const uchar *)p, uncomp_size).mirrored());
-            _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-            _texture->setMagnificationFilter(QOpenGLTexture::Linear);
-
-            _image = filename;
-
-            // We're done.
-            mz_free(p);
+            qWarning() << "Failed to extract file " << filename;
+            return false;
         }
         else
         {
@@ -139,11 +165,19 @@ bool QtImage::Load( const char *filename )
             qWarning() << "Failed to load image: " << filename;
             return false;
         }
-        _texture = new QOpenGLTexture(QImage(f.fileName()).mirrored());
-        _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-        _texture->setMagnificationFilter(QOpenGLTexture::Linear);
+        QImage img(f.fileName());
+        if (img.isNull())
+        {
+            qWarning() << "Failed to load image: " << filename;
+        }
+        else
+        {
+            _texture = new QOpenGLTexture(img.mirrored());
+            _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+            _texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
-        _image = f.fileName();
+            _image = f.fileName();
+        }
     }
 
     return true;
