@@ -29,6 +29,8 @@ QtEffectsLibrary::QtEffectsLibrary()
 
 bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* = 0 */, bool compile /* = true */)
 {
+    QString libraryinfo = filename;
+
     struct zip_archive_t {
         zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
         ~zip_archive_t() { mz_zip_reader_end(&za); }
@@ -45,8 +47,6 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
         return false;
     }
     
-    QString libraryinfo = filename;
-
     if (libraryinfo.isEmpty())
     {
         // Try to locate effect data file.

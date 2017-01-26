@@ -16,6 +16,7 @@ namespace TLFX
         _error[0] = 0;
 
         if (_library) {
+
             struct zip_archive_t {
                 zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
                 ~zip_archive_t() { mz_zip_reader_end(&za); }
@@ -39,7 +40,7 @@ namespace TLFX
 
                 printf("[PugiXMLLoader] Successfully extracted file \"%s\", size %u\n", filename, (uint)uncomp_size);
 
-                pugi::xml_parse_result result = _doc.load_buffer_inplace(p, uncomp_size);
+                pugi::xml_parse_result result = _doc.load_buffer(p, uncomp_size);
 
                 // We're done.
                 mz_free(p);
@@ -76,10 +77,10 @@ namespace TLFX
         while (!_currentEffect && _currentFolder)
         {
             _currentEffect = _currentFolder.child("EFFECT");
-            if (!_currentEffect)                // empty folder
+            if (!_currentEffect)  // empty folder
                 _currentFolder = _currentFolder.next_sibling("FOLDER");
         }
-        if (!_currentEffect)            // no effect in any folder
+        if (!_currentEffect) // no effect in any folder
             _currentEffect = _doc.child("EFFECTS").child("EFFECT");
 
         return true;
