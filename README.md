@@ -1,9 +1,11 @@
 Qt implementation of TimelineFX particles preview (Work in progress).
 
 Based on Marmalade loaded with few Qt changes. Should work on every platform however I have tested this only on OSX.
+
 Features:
 * Effects loaded from resoures (data.qrc).
 * Open eff files directly.
+
 ***
 
 How to build (tested with Qt 5.6 - on OSX/Retina).
