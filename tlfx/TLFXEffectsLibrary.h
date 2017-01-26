@@ -138,7 +138,6 @@ namespace TLFX
         virtual ~EffectsLibrary();
 
         bool Load(const char *filename, bool compile = true);
-        bool LoadLibrary(const char *library, const char *filename = 0, bool compile = true) { return false; }
 
         /**
          * Set the current Update Frequency.

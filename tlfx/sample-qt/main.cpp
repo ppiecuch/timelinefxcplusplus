@@ -110,7 +110,9 @@ private:
 	QOpenGLContext *m_context;
 	QOpenGLPaintDevice *m_device;
     
-    TLFX::EffectsLibrary *m_effects;
+    QString m_curr_library;
+    
+    QtEffectsLibrary *m_effects;
     QtParticleManager *m_pm;
     quint32 m_curr_effect; // currently selected effect
     quint32 m_curr_bg; // current background style
@@ -124,11 +126,12 @@ private:
 public:
 	QPoint cursorPos;
 public:
-	Window(QWindow *parent = 0) : QWindow(parent)
+	Window(QString library = "", QWindow *parent = 0) : QWindow(parent)
 		, m_update_pending(false)
 		, m_auto_refresh(true)
 		, m_context(0)
 		, m_device(0)
+        , m_curr_library(library)
         , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
@@ -179,7 +182,10 @@ public:
         setTitle(QString("Qt %1 - %2 (%3)").arg(QT_VERSION_STR).arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
 
         m_effects = new QtEffectsLibrary();
-        m_effects->Load(":/data/particles/data.xml");
+        if (m_curr_library.isEmpty())
+            m_effects->Load(":/data/particles/data.xml"); // default res. effect
+        else
+            m_effects->LoadLibrary(m_curr_library.toUtf8().constData());
 
         m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
@@ -352,7 +358,9 @@ int main(int argc, char *argv[]) {
 	// surface_format.setVersion( 2, 0 );
 	QSurfaceFormat::setDefaultFormat( surface_format );
 
-    Window window;
+    QString library; if (QCoreApplication::arguments().count() > 1) 
+        library = QCoreApplication::arguments().at(1);
+    Window window(library);
     window.show();
 	window.resize(800, 600);
 

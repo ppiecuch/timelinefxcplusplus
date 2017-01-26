@@ -24,7 +24,7 @@ class XMLLoader;
 class QtImage : public TLFX::AnimImage
 {
 public:
-    QtImage();
+    QtImage(const QString &library = "");
     ~QtImage();
 
     virtual bool Load(const char *filename);
@@ -32,6 +32,7 @@ public:
     QString GetImageName() const { return _image; }
 
 protected:
+    QString _library;
     QString _image;
     QOpenGLTexture *_texture;
 };
@@ -40,8 +41,14 @@ class QtEffectsLibrary : public TLFX::EffectsLibrary
 {
 public:
     QtEffectsLibrary();
+
+    bool LoadLibrary(const char *library, const char *filename = 0, bool compile = true);
+
     virtual TLFX::XMLLoader* CreateLoader() const;
     virtual TLFX::AnimImage* CreateImage() const;
+
+protected:
+    QString _library;
 };
 
 class QtParticleManager : public TLFX::ParticleManager

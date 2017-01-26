@@ -25,60 +25,66 @@ QtEffectsLibrary::QtEffectsLibrary()
         SetUpdateFrequency(qApp->primaryScreen()->refreshRate());
 }
 
-bool LoadLibrary(const char *library, const char *filename /* = 0 */, bool compile /* = true */)
+bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* = 0 */, bool compile /* = true */)
 {
-    mz_zip_archive zip_archive;
-    
+    struct zip_archive_t {
+        zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
+        ~zip_archive_t() { mz_zip_reader_end(&za); }
+        mz_bool init_file(const char *fn) { return mz_zip_reader_init_file(&za, fn); }
+        mz_zip_archive * operator &() { return &za; }
+        mz_zip_archive za;
+    } zip_archive;
+
     // Now try to open the archive.
-    memset(&zip_archive, 0, sizeof(zip_archive));
-    mz_bool status = mz_zip_reader_init_file(&zip_archive, library);
+    mz_bool status = zip_archive.init_file(library);
     if (!status)
     {
-        printf("mz_zip_reader_init_file() failed!\n");
+        qWarning() << "Cannot open effects library!";
         return false;
-    }
-  
-    // Get and print information about each file in the archive.
-    for (int i = 0; i < (int)mz_zip_get_num_files(&zip_archive); i++)
-    {
-        mz_zip_archive_file_stat file_stat;
-        if (!mz_zip_file_stat(&zip_archive, i, &file_stat))
-        {
-            printf("mz_zip_file_stat() failed!\n");
-            mz_zip_reader_end(&zip_archive);
-            return false;
-        }
-        printf("Filename: \"%s\", Comment: \"%s\", Uncompressed size: %u, Compressed size: %u, Is Dir: %u\n", file_stat.m_filename, file_stat.m_comment, (uint)file_stat.m_uncomp_size, (uint)file_stat.m_comp_size, mz_zip_is_file_a_directory(&zip_archive, i));
     }
     
-    // Try to extract all the files to the heap.
-    size_t uncomp_size;
-    void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
-    if (!p)
+    QString libraryinfo = filename;
+
+    if (libraryinfo.isEmpty())
     {
-        printf("mz_zip_extract_file_to_heap() failed!\n");
-        mz_zip_reader_end(&zip_archive);
-        return false;
+        // Try to locate effect data file.
+        for (int i = 0; i < (int)mz_zip_get_num_files(&zip_archive); i++)
+        {
+            mz_zip_archive_file_stat file_stat;
+            if (!mz_zip_file_stat(&zip_archive, i, &file_stat))
+            {
+                qWarning() << "Cannot read effects library!";
+                return false;
+            }
+            if(libraryinfo.isEmpty() && strcasestr(file_stat.m_filename, "data.xml"))
+            {
+                libraryinfo = file_stat.m_filename;
+                break;
+            }
+            // qDebug("Filename: \"%s\", Comment: \"%s\", Uncompressed size: %u, Compressed size: %u, Is Dir: %u\n", file_stat.m_filename, file_stat.m_comment, (uint)file_stat.m_uncomp_size, (uint)file_stat.m_comp_size, mz_zip_is_file_a_directory(&zip_archive, i));
+        }
     }
 
-    printf("Successfully extracted file \"%s\", size %u\n", filename, (uint)uncomp_size);
+    if (libraryinfo.isEmpty())
+    {
+        qWarning() << "Cannot find library description file!";
+        return false;
+    }
+ 
+    // Keep library we are using for effects
+    _library = library;
 
-    // We're done.
-    mz_free(p);
-      
-    // Close the archive, freeing any resources it was using
-    mz_zip_reader_end(&zip_archive);
-    return true;
+    return Load(libraryinfo.toUtf8().constData());
 }
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
-    return new TLFX::PugiXMLLoader(0);
+    return new TLFX::PugiXMLLoader(0, _library.toUtf8().constData());
 }
 
 TLFX::AnimImage* QtEffectsLibrary::CreateImage() const
 {
-    return new QtImage();
+    return new QtImage(_library);
 }
 
 //Textures DB
@@ -87,24 +93,65 @@ QMap<QString, QSharedPointer<QOpenGLTexture>> s_openGLTextureDB;
 
 bool QtImage::Load( const char *filename )
 {
-    QFile f(filename);
-    if (!f.exists())
-        f.setFileName(QString(":/data/%1").arg(filename));
-    if (!f.exists()) {
-        qDebug() << "Failed to load image: " << filename;
-        return false;
-    }
-    _texture = new QOpenGLTexture(QImage(f.fileName()).mirrored());
-    _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    _texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    if (!_library.isEmpty()) {
+        struct zip_archive_t {
+            zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
+            ~zip_archive_t() { mz_zip_reader_end(&za); }
+            mz_bool init_file(const char *fn) { return mz_zip_reader_init_file(&za, fn); }
+            mz_zip_archive * operator &() { return &za; }
+            mz_zip_archive za;
+        } zip_archive;
+        
+        // Now try to open the archive.
+        mz_bool status = zip_archive.init_file(_library.toUtf8().constData());
+        if (status)
+        {
+            // Try to extract all the files to the heap.
+            size_t uncomp_size;
+            void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
+            if (!p)
+            {
+                qWarning() << "Failed to extract " << filename;
+                return false;
+            }
 
-    _image = f.fileName();
+            qDebug() << "[QtImage] Successfully extracted file" << filename << "size" << uncomp_size;
+
+            _texture = new QOpenGLTexture(QImage::fromData((const uchar *)p, uncomp_size).mirrored());
+            _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+            _texture->setMagnificationFilter(QOpenGLTexture::Linear);
+
+            _image = filename;
+
+            // We're done.
+            mz_free(p);
+        }
+        else
+        {
+            qWarning() << "Cannot open library file " << _library;
+            return false;
+        }
+    } else {
+        QFile f(filename);
+        if (!f.exists())
+            f.setFileName(QString(":/data/%1").arg(filename));
+        if (!f.exists()) {
+            qWarning() << "Failed to load image: " << filename;
+            return false;
+        }
+        _texture = new QOpenGLTexture(QImage(f.fileName()).mirrored());
+        _texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+        _texture->setMagnificationFilter(QOpenGLTexture::Linear);
+
+        _image = f.fileName();
+    }
 
     return true;
 }
 
-QtImage::QtImage()
-    : _texture(0)
+QtImage::QtImage(const QString &library)
+    : _library(library)
+    , _texture(0)
 {
 }
 

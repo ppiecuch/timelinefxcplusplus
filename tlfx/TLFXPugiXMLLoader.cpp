@@ -3,7 +3,10 @@
 #include "TLFXEffect.h"
 #include "TLFXEmitter.h"
 
+#include <sys/types.h>
 #include <cassert>
+
+#include "vogl_miniz_zip.h"
 
 namespace TLFX
 {
@@ -11,12 +14,55 @@ namespace TLFX
     bool PugiXMLLoader::Open( const char *filename )
     {
         _error[0] = 0;
-        pugi::xml_parse_result result = _doc.load_file(filename);
 
-        if (!result)
-        {
-            snprintf(_error, sizeof(_error), "Parsing error at #%d : %s", result.offset, result.description());
-            return false;
+        if (_library) {
+            struct zip_archive_t {
+                zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
+                ~zip_archive_t() { mz_zip_reader_end(&za); }
+                mz_bool init_file(const char *fn) { return mz_zip_reader_init_file(&za, fn); }
+                mz_zip_archive * operator &() { return &za; }
+                mz_zip_archive za;
+            } zip_archive;
+            
+            // Now try to open the archive.
+            mz_bool status = zip_archive.init_file(_library);
+            if (status)
+            {
+                // Try to extract all the files to the heap.
+                size_t uncomp_size;
+                void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
+                if (!p)
+                {
+                    snprintf(_error, sizeof(_error), "Failed to extract %s!", filename);
+                    return false;
+                }
+
+                printf("[PugiXMLLoader] Successfully extracted file \"%s\", size %u\n", filename, (uint)uncomp_size);
+
+                pugi::xml_parse_result result = _doc.load_buffer_inplace_own(p, uncomp_size);
+
+                // We're done.
+                mz_free(p);
+
+                if (!result)
+                {
+                    snprintf(_error, sizeof(_error), "Parsing error at #%d : %s", (uint)result.offset, result.description());
+                    return false;
+                }
+            }
+            else
+            {
+                snprintf(_error, sizeof(_error), "Cannot open library file %s!", _library);
+                return false;
+            }
+        } else {
+            pugi::xml_parse_result result = _doc.load_file(filename);
+
+            if (!result)
+            {
+                snprintf(_error, sizeof(_error), "Parsing error at #%d : %s", result.offset, result.description());
+                return false;
+            }
         }
         if (!_doc.child("EFFECTS"))
         {
