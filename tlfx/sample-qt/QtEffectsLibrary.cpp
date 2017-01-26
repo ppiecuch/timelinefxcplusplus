@@ -15,12 +15,60 @@
 #include "qgeometry/qglpainter.h"
 #include "qgeometry/qglbuilder.h"
 
+#include "vogl_miniz_zip.h"
+
 QtEffectsLibrary::QtEffectsLibrary()
 {
     if (qApp == 0)
         qWarning("[QtEffectsLibrary] Application is not initialized.");
     else
         SetUpdateFrequency(qApp->primaryScreen()->refreshRate());
+}
+
+bool LoadLibrary(const char *library, const char *filename /* = 0 */, bool compile /* = true */)
+{
+    mz_zip_archive zip_archive;
+    
+    // Now try to open the archive.
+    memset(&zip_archive, 0, sizeof(zip_archive));
+    mz_bool status = mz_zip_reader_init_file(&zip_archive, library);
+    if (!status)
+    {
+        printf("mz_zip_reader_init_file() failed!\n");
+        return false;
+    }
+  
+    // Get and print information about each file in the archive.
+    for (int i = 0; i < (int)mz_zip_get_num_files(&zip_archive); i++)
+    {
+        mz_zip_archive_file_stat file_stat;
+        if (!mz_zip_file_stat(&zip_archive, i, &file_stat))
+        {
+            printf("mz_zip_file_stat() failed!\n");
+            mz_zip_reader_end(&zip_archive);
+            return false;
+        }
+        printf("Filename: \"%s\", Comment: \"%s\", Uncompressed size: %u, Compressed size: %u, Is Dir: %u\n", file_stat.m_filename, file_stat.m_comment, (uint)file_stat.m_uncomp_size, (uint)file_stat.m_comp_size, mz_zip_is_file_a_directory(&zip_archive, i));
+    }
+    
+    // Try to extract all the files to the heap.
+    size_t uncomp_size;
+    void *p = mz_zip_extract_file_to_heap(&zip_archive, filename, &uncomp_size, 0);
+    if (!p)
+    {
+        printf("mz_zip_extract_file_to_heap() failed!\n");
+        mz_zip_reader_end(&zip_archive);
+        return false;
+    }
+
+    printf("Successfully extracted file \"%s\", size %u\n", filename, (uint)uncomp_size);
+
+    // We're done.
+    mz_free(p);
+      
+    // Close the archive, freeing any resources it was using
+    mz_zip_reader_end(&zip_archive);
+    return true;
 }
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const

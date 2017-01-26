@@ -198,6 +198,7 @@ public:
         dbgAppendMessage(" m: toggle blending mode");
         dbgAppendMessage(" p: toggle pause");
         dbgAppendMessage(" r: restart effect");
+        dbgAppendMessage(" o: open effect file");
         dbgSetPixelRatio(devicePixelRatio());
 
         dbgSetInvert(bg[m_curr_bg].invert);

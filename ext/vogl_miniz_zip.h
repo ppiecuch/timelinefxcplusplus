@@ -233,7 +233,7 @@ mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem, size_t si
 // Read a archive from a disk file.
 // file_start_ofs is the file offset where the archive actually begins, or 0.
 // actual_archive_size is the true total size of the archive, which may be smaller than the file's actual size on disk. If zero the entire file is treated as the archive.
-mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint flags, mz_uint64 file_start_ofs, mz_uint64 archive_size);
+mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint flags = 0, mz_uint64 file_start_ofs = 0, mz_uint64 archive_size = 0);
 
 // Read an archive from an already opened FILE, beginning at the current file position.
 // The archive is assumed to be archive_size bytes long. If archive_size is < 0, then the entire rest of the file is assumed to contain the archive.
