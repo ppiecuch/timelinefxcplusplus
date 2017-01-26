@@ -205,9 +205,6 @@ QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleL
 
 void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
 {
-    if(frame > 1)
-        qWarning() << "[DrawSprite] Invalid frame " << frame;
-
     #define qFF(C) C*(255.999)
 
     quint8 alpha = qFF(a);
