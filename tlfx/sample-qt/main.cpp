@@ -2,12 +2,15 @@
 #include <QElapsedTimer>
 #include <QDirIterator>
 #include <QMouseEvent>
+#include <QStandardPaths>
+#include <QSettings>
 #include <QMutex>
 #include <QPainter>
 #include <QWindow>
 #include <QOpenGLContext>
 #include <QOpenGLPaintDevice>
 #include <QOpenGLFunctions>
+#include <QFileDialog>
 #include <QApplication>
 
 #include <stdlib.h>
@@ -251,10 +254,17 @@ public:
 		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
-		case Qt::Key_O:
-            QString fileName = QFileDialog::getOpenFileName(this,
-                tr("Open Image"), "/home/jana", tr("Image Files (*.png *.jpg *.bmp)"));
-            break;
+		case Qt::Key_O: {
+            QSettings settings;
+            QString openPath = settings.value("LastOpenPath", QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)).toString();
+            QString fileName = QFileDialog::getOpenFileName(0,
+                tr("Open Effects"), openPath, tr("Effect Files (*.eff)"));
+            if (!fileName.isNull())
+            {
+                QString path = QFileInfo(fileName).path(); // store path for next time
+                settings.setValue("LastOpenPath", path);
+            }
+        } break;
 		case Qt::Key_R: {
             guard.lock();
             m_pm->Reset();
@@ -345,6 +355,9 @@ protected:
 int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
+    app.setApplicationName("TLFXSample");
+    app.setOrganizationName("KomSoft Oprogramowanie");
+    app.setOrganizationDomain("komsoft.ath.cx");
 
 	QSurfaceFormat surface_format = QSurfaceFormat::defaultFormat();
 	surface_format.setAlphaBufferSize( 0 );
