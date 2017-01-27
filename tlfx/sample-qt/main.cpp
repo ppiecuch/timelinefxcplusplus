@@ -167,7 +167,7 @@ public:
         guard.unlock();
 
         dbgSetStatusLine(QString("Running effect: %1 | blending: %2 | FPS:%3")
-        .arg(m_effects->AllEffects()[m_curr_effect].c_str())
+        .arg(m_effects->AllEffects().size()?m_effects->AllEffects()[m_curr_effect].c_str():"n/a")
         .arg(m_pm->IsForceBlend()?"force blend":"effect blend")
         .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
         );
@@ -186,18 +186,25 @@ public:
 
         m_effects = new QtEffectsLibrary();
         if (m_curr_library.isEmpty())
-            m_effects->Load(":/data/particles/data.xml"); // default res. effect
+        {
+            if (!m_effects->Load(":/data/particles/data.xml")) // default res. effect
+                qWarning() << "Failed to load :/data/particles/data.xml resources.";
+        }
         else
             m_effects->LoadLibrary(m_curr_library.toUtf8().constData());
-
+        
         m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
 
-        TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-        TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-        copy->SetPosition(0, 0);
+        if (m_effects->AllEffects().size())
+        {
+            TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
+            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
+            copy->SetPosition(0, 0);
 
-        m_pm->AddEffect(copy);
+            m_pm->AddEffect(copy);
+        } else
+            qWarning() << "No effects found in the library";
 
         dbgLoadFont();
         dbgAppendMessage(" >: next effect");
@@ -263,6 +270,9 @@ public:
             {
                 QString path = QFileInfo(fileName).path(); // store path for next time
                 settings.setValue("LastOpenPath", path);
+                guard.lock();
+                m_effects->LoadLibrary(path.toUtf8().constData());
+                guard.unlock();
             }
         } break;
 		case Qt::Key_R: {

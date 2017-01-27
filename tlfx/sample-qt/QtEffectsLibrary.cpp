@@ -43,7 +43,7 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
     mz_bool status = zip_archive.init_file(library);
     if (!status)
     {
-        qWarning() << "Cannot open effects library!";
+        qWarning() << "Cannot open effects library \"" << library << "\"";
         return false;
     }
     
@@ -81,7 +81,7 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
-    return new TLFX::PugiXMLLoader(0, _library.toUtf8().constData());
+    return new TLFX::PugiXMLLoader(0, _library.isEmpty()?0:_library.toUtf8().constData());
 }
 
 TLFX::AnimImage* QtEffectsLibrary::CreateImage() const
