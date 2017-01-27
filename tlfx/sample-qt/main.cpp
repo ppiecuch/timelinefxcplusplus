@@ -251,6 +251,10 @@ public:
 		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
+		case Qt::Key_O:
+            QString fileName = QFileDialog::getOpenFileName(this,
+                tr("Open Image"), "/home/jana", tr("Image Files (*.png *.jpg *.bmp)"));
+            break;
 		case Qt::Key_R: {
             guard.lock();
             m_pm->Reset();
