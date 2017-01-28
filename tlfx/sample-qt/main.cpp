@@ -271,8 +271,7 @@ public:
                 QString path = QFileInfo(fileName).path(); // store path for next time
                 settings.setValue("LastOpenPath", path);
                 guard.lock();
-                m_pm->Reset();
-                m_effects->ClearAll();
+                m_pm->Reset(); m_effects->ClearAll();
                 if (m_effects->LoadLibrary(fileName.toUtf8().constData())) {
                     m_curr_library = fileName;
                     m_curr_effect = 0;

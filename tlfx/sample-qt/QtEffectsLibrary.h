@@ -55,7 +55,7 @@ class QtParticleManager : public TLFX::ParticleManager
 {
 public:
     QtParticleManager(QGLPainter *p, int particles = TLFX::ParticleManager::particleLimit, int layers = 1);
-    void Reset() { ClearAll(); batch = QGeometryData(); _lastSprite = 0; _lastAdditive = true; }
+    void Reset() { Destroy(); batch = QGeometryData(); _lastSprite = 0; _lastAdditive = true; }
     void Flush();
     
     bool IsForceBlend() { return _forceBlend; }
