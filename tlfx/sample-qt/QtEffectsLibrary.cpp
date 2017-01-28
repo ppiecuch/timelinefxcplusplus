@@ -43,7 +43,7 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
     mz_bool status = zip_archive.init_file(library);
     if (!status)
     {
-        qWarning() << "Cannot open effects library \"" << library << "\"";
+        qWarning() << "Cannot open effects library" << library;
         return false;
     }
     
@@ -135,7 +135,7 @@ bool QtImage::Load( const char *filename )
                 QImage img = QImage::fromData((const uchar *)p, uncomp_size);
                 if (img.isNull())
                 {
-                    qWarning() << "Failed to create image: " << filename;
+                    qWarning() << "Failed to create image:" << filename;
                 }
                 else
                 {
@@ -151,12 +151,12 @@ bool QtImage::Load( const char *filename )
 
                 return true;
             }
-            qWarning() << "Failed to extract file " << filename;
+            qWarning() << "Failed to extract file" << filename;
             return false;
         }
         else
         {
-            qWarning() << "Cannot open library file " << _library;
+            qWarning() << "Cannot open library file" << _library;
             return false;
         }
     } else {
@@ -164,13 +164,13 @@ bool QtImage::Load( const char *filename )
         if (!f.exists())
             f.setFileName(QString(":/data/%1").arg(filename));
         if (!f.exists()) {
-            qWarning() << "Failed to load image: " << filename;
+            qWarning() << "Failed to load image:" << filename;
             return false;
         }
         QImage img(f.fileName());
         if (img.isNull())
         {
-            qWarning() << "Failed to load image: " << filename;
+            qWarning() << "Failed to load image:" << filename;
         }
         else
         {
