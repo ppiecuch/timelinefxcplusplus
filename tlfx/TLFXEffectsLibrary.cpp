@@ -178,10 +178,12 @@ void EffectsLibrary::ClearAll()
     for (auto it = _effects.begin(); it != _effects.end(); ++it)
         delete it->second;
     _effects.clear();
+    _effects_names.clear();
 
     for (auto it = _emitters.begin(); it != _emitters.end(); ++it)
         delete it->second;
     _emitters.clear();
+    _emitters_names.clear();
 
     for (auto it = _shapeList.begin(); it != _shapeList.end(); ++it)
         delete *it;

@@ -73,11 +73,12 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
         return false;
     }
  
+    // Keep library we are using for effects
+    _library = library;
+
     if(!Load(libraryinfo.toUtf8().constData())) 
         return false;
 
-    // Keep library we are using for effects
-    _library = library;
     return true;   
 }
 

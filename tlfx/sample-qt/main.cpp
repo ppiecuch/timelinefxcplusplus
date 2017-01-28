@@ -271,12 +271,13 @@ public:
                 QString path = QFileInfo(fileName).path(); // store path for next time
                 settings.setValue("LastOpenPath", path);
                 guard.lock();
+                m_pm->Reset();
+                m_effects->ClearAll();
                 if (m_effects->LoadLibrary(fileName.toUtf8().constData())) {
+                    m_curr_library = fileName;
                     m_curr_effect = 0;
                     if (m_effects->AllEffects().size())
                     {
-                        m_pm->Reset();
-
                         TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
                         TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
                         copy->SetPosition(0, 0);
