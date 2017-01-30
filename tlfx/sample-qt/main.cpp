@@ -191,7 +191,11 @@ public:
                 qWarning() << "Failed to load :/data/particles/data.xml resources.";
         }
         else
-            m_effects->LoadLibrary(m_curr_library.toUtf8().constData());
+            if (!m_effects->LoadLibrary(m_curr_library.toUtf8().constData()))
+            {
+                m_curr_library = ""; // no library loaded
+                m_effects->Load(":/data/particles/data.xml"); // try with embedded one
+            }
         
         m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
@@ -262,6 +266,8 @@ public:
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
 		case Qt::Key_O: {
+            bool auto_refresh = m_auto_refresh;
+            m_auto_refresh = false; // pause bg. animation (preven open file dialog stucking)
             QSettings settings;
             QString openPath = settings.value("LastOpenPath", QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)).toString();
             QString fileName = QFileDialog::getOpenFileName(0,
@@ -271,7 +277,7 @@ public:
                 QString path = QFileInfo(fileName).path(); // store path for next time
                 settings.setValue("LastOpenPath", path);
                 guard.lock();
-                m_pm->Reset(); m_effects->ClearAll();
+                m_effects->ClearAll();
                 if (m_effects->LoadLibrary(fileName.toUtf8().constData())) {
                     m_curr_library = fileName;
                     m_curr_effect = 0;
@@ -280,13 +286,15 @@ public:
                         TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
                         TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
                         copy->SetPosition(0, 0);
-
+                        
+                        m_pm->Reset();
                         m_pm->AddEffect(copy);
                     } else
                         qWarning() << "No effects found in the library";
                 } else
                         qWarning() << "Failed to load the library" << fileName;
                 guard.unlock();
+                m_auto_refresh = auto_refresh;
             }
         } break;
 		case Qt::Key_R: {
@@ -347,7 +355,7 @@ protected:
 		if (isExposed()) renderNow();
 	}
 	
-	public slots:
+public slots:
 	void renderLater() {
 		if (!m_update_pending) {
 			m_update_pending = true;
