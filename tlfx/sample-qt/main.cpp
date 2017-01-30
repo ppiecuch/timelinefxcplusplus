@@ -166,8 +166,9 @@ public:
 
         guard.unlock();
 
-        dbgSetStatusLine(QString("Running effect: %1 | blending: %2 | FPS:%3")
-        .arg(m_effects->AllEffects().size()?m_effects->AllEffects()[m_curr_effect].c_str():"n/a")
+        dbgSetStatusLine(QString("Running effect: [%1]%2 | blending: %3 | FPS:%4")
+        .arg(m_effects->AllEffects().size())
+        .arg(m_effects->AllEffects().size()?QFileInfo(m_effects->AllEffects()[m_curr_effect].c_str()).fileName():"n/a")
         .arg(m_pm->IsForceBlend()?"force blend":"effect blend")
         .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
         );
