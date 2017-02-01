@@ -206,6 +206,18 @@ QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleL
 {
 }
 
+static void __build_tiles(QSize grid_size, unsigned int total_frames, 
+                          QPointF tex_origin=QPointF(0,0), QSizeF tex_size=QSizeF(1,1)) 
+{
+    QVector<QRectF> frames;
+    for(int fr=0; fr<grid_size.height() /* rows */; fr++)
+        for(int fc=0; fc<grid_size.width() /* cols */; fc++) {
+            const float cw = tex_size.width()/grid_size.width(), ch = tex_size.height()/grid_size.height();
+            frames.push_back(QRectF(tex_origin.x()+fc*cw, tex_origin.y()+fr*ch, cw, ch));
+            if (frames.size() == total_frames) break;
+        }
+}
+	
 void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, float px, float py, float frame, float x, float y, float rotation, float scaleX, float scaleY, unsigned char r, unsigned char g, unsigned char b, float a , bool additive )
 {
     #define qFF(C) C*(255.999)
@@ -216,14 +228,25 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
     if ((sprite != _lastSprite) || ((additive != _lastAdditive) && !_forceBlend))
         Flush();
 
+    QRectF rc(0,0,1,1);
+    // calculate frame position in atlas:
+    if (sprite && sprite->GetFramesCount() > 1)
+    {
+        const int atlas_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
+        const int atlas_cell = sqrtf(atlas_size);
+        const int atlas_frame = roundf(frame);
+        const int gr = atlas_frame / atlas_cell, gc = atlas_frame % atlas_cell;
+        const float cw = 1.0/atlas_cell, ch = 1.0/atlas_cell;
+        rc = QRectF(gc*cw, 1 - gr*ch - ch, cw, ch);
+    }
     //uvs[index + 0] = {0, 0};
-    batch.appendTexCoord(QVector2D(0, 0));
+    batch.appendTexCoord(QVector2D(rc.x(), rc.y()));
     //uvs[index + 1] = {1.0f, 0}
-    batch.appendTexCoord(QVector2D(1, 0));
+    batch.appendTexCoord(QVector2D(rc.x()+rc.width(), rc.y()));
     //uvs[index + 2] = {1.0f, 1.0f};
-    batch.appendTexCoord(QVector2D(1, 1));
+    batch.appendTexCoord(QVector2D(rc.x()+rc.width(), rc.y()+rc.height()));
     //uvs[index + 3] = {0, 1.0f};
-    batch.appendTexCoord(QVector2D(0, 1));
+    batch.appendTexCoord(QVector2D(rc.x(), rc.y()+rc.height()));
 
     /*
     verts[index + 0].x = px - x * scaleX;

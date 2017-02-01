@@ -7,9 +7,10 @@
 #include <QMutex>
 #include <QPainter>
 #include <QWindow>
+#include <QOpenGLFunctions>
 #include <QOpenGLContext>
 #include <QOpenGLPaintDevice>
-#include <QOpenGLFunctions>
+#include <QOpenGLFramebufferObject>
 #include <QFileDialog>
 #include <QApplication>
 
@@ -19,6 +20,7 @@
 #include <string.h>
 
 #include "qgeometry/qglbuilder.h"
+#include "qgeometry/qglsurface.h"
 #include "qgeometry/qglpainter.h"
 
 #include "QtEffectsLibrary.h"
@@ -123,6 +125,8 @@ private:
 
     QMutex guard;
     
+    QOpenGLFramebufferObject *m_fbo;
+    QGLFramebufferObjectSurface *m_surf;
     QGLPainter m_p;
     QSize m_size;
     QMatrix4x4 m_projm;
@@ -134,12 +138,13 @@ public:
 		, m_auto_refresh(true)
 		, m_context(0)
 		, m_device(0)
+        , m_fbo(0), m_surf(0)
         , m_curr_library(library)
         , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
-	~Window() { delete m_device; }
+	~Window() { delete m_surf; delete m_fbo; delete m_device; }
 	
 	void setAutoRefresh(bool a) { m_auto_refresh = a; }
 	
@@ -156,13 +161,35 @@ public:
 
         m_pm->Update();
 
-        m_p.begin(this);
+        m_p.begin(m_surf);
         m_p.projectionMatrix() = m_projm;
         m_p.setStandardEffect(QGL::VertColorTexture2D);
         m_pm->DrawParticles();
         m_pm->Flush();
         m_p.disableEffect();
         m_p.end();
+
+        glBindTexture(GL_TEXTURE_2D,m_fbo->texture());
+        QGeometryData fbo_vert;
+        fbo_vert.appendVertex(QVector3D(-1,-1,0));//0
+        fbo_vert.appendVertex(QVector3D(1,-1,0)); //1
+        fbo_vert.appendVertex(QVector3D(1,1,0));  //2
+        fbo_vert.appendVertex(QVector3D(-1,1,0)); //3
+        fbo_vert.appendTexCoord(QVector2D(0,0));
+        fbo_vert.appendTexCoord(QVector2D(1,0));
+        fbo_vert.appendTexCoord(QVector2D(1,1));
+        fbo_vert.appendTexCoord(QVector2D(0,1));
+
+        fbo_vert.appendIndices(0,1,2);
+        fbo_vert.appendIndices(2,3,0);
+        
+        m_p.begin(this);
+        m_p.projectionMatrix() = QMatrix4x4();
+        m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
+        fbo_vert.draw(&m_p,0,6,QGL::Triangles);
+        m_p.disableEffect();
+        m_p.end();
+        m_fbo->release();
 
         guard.unlock();
 
@@ -184,6 +211,9 @@ public:
 		qDebug() << " GLSL Version:" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
         setTitle(QString("Qt %1 - %2 (%3)").arg(QT_VERSION_STR).arg((const char*)glGetString(GL_VERSION)).arg((const char*)glGetString(GL_RENDERER)));
+
+        m_surf = new QGLFramebufferObjectSurface;
+        ensureFbo();
 
         m_effects = new QtEffectsLibrary();
         if (m_curr_library.isEmpty())
@@ -355,7 +385,17 @@ protected:
 		Q_UNUSED(event);
 		if (isExposed()) renderNow();
 	}
-	
+    void ensureFbo()
+    {
+        if (m_fbo && m_fbo->size() != size() * devicePixelRatio()) {
+            delete m_fbo;
+            m_fbo = 0;
+        }
+        if (!m_fbo) {
+            m_fbo = new QOpenGLFramebufferObject(size() * devicePixelRatio(), QOpenGLFramebufferObject::CombinedDepthStencil);
+            m_surf->setFramebufferObject(m_fbo);
+        }
+    }
 public slots:
 	void renderLater() {
 		if (!m_update_pending) {
