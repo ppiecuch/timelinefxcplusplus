@@ -44,6 +44,9 @@
 
 QT_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(QGEOM_LOG_INFO, "komsoft.qgeom.info")
+Q_LOGGING_CATEGORY(QGEOM_LOG_TIME, "komsoft.qgeom.time")
+
 /*!
     \enum QGL::VertexAttribute
     \since 4.8

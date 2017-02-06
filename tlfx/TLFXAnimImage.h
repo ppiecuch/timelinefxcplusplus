@@ -16,6 +16,12 @@ namespace TLFX
         AnimImage();
         virtual ~AnimImage() {}
 
+        enum ImportOptions {
+            impGreyScale,
+            impFullColour,
+            impPassThrough
+        };
+
         virtual bool Load(const char *filename) = 0;
 
         void                SetWidth(float width);
@@ -30,6 +36,7 @@ namespace TLFX
         virtual int         GetIndex() const;
         void                SetFilename(const char *filename);
         virtual const char *GetFilename() const;
+        void                SetImportOpt(const char *opt);
         void                SetName(const char *name);
         virtual const char *GetName() const;
 
@@ -42,6 +49,7 @@ namespace TLFX
         int _index;
         int _frames;
         std::string _filename;
+        ImportOptions _importOpt;
         std::string _name;
     };
 

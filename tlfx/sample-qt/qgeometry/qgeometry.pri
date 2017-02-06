@@ -24,6 +24,7 @@ SOURCES += \
     $$PWD/qmatrix4x4stack.cpp \
     $$PWD/qglext.cpp \
     $$PWD/qgltexture2d.cpp \
+    $$PWD/qatlastexture.cpp \
     $$PWD/qglview.cpp \
     $$PWD/qdownloadmanager.cpp
 
@@ -59,5 +60,6 @@ HEADERS += \
     $$PWD/qglext_p.h \
     $$PWD/qgltexture2d.h \
     $$PWD/qgltexture2d_p.h \
+    $$PWD/qatlastexture.h \
     $$PWD/qglview.h \
     $$PWD/qdownloadmanager.h

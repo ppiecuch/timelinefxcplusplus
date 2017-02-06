@@ -5,7 +5,8 @@ namespace TLFX
 
 
     AnimImage::AnimImage()
-        : _width(0)
+        : _importOpt(impPassThrough)
+        , _width(0)
         , _height(0)
         , _maxRadius(0)
         , _index(0)
@@ -72,6 +73,16 @@ namespace TLFX
     const char * AnimImage::GetFilename() const
     {
         return _filename.c_str();
+    }
+
+    void AnimImage::SetImportOpt( const char *opt )
+    {
+        if (strcmp(opt, "GREYSCALE") == 0)
+            _importOpt = impGreyScale;
+        else if (strcmp(opt, "FULLCOLOR") == 0)
+            _importOpt = impFullColour;
+        else if (strcmp(opt, "PASSTHROUGH") == 0)
+            _importOpt = impPassThrough;
     }
 
     void AnimImage::SetName( const char *name )

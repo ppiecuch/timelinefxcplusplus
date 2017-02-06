@@ -42,7 +42,8 @@
 #ifndef QGLNAMESPACE_H
 #define QGLNAMESPACE_H
 
-#include <qsize.h>
+#include <QtCore/QLoggingCategory>
+#include <QtCore/QSize>
 
 QT_BEGIN_NAMESPACE
 
@@ -147,6 +148,9 @@ namespace QGL
     int nextPowerOfTwo(int value);
     QSize nextPowerOfTwo(const QSize& value);
 }
+
+Q_DECLARE_LOGGING_CATEGORY(QGEOM_LOG_INFO)
+Q_DECLARE_LOGGING_CATEGORY(QGEOM_LOG_TIME)
 
 QT_END_NAMESPACE
 

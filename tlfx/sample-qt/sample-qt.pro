@@ -1,4 +1,4 @@
-QT += widgets
+QT += opengl widgets
 CONFIG += debug
 
 DESTDIR = build-$$[QMAKE_SPEC]
@@ -63,3 +63,4 @@ HEADERS += \
     QtEffectsLibrary.h
 
 include(qgeometry/qgeometry.pri)
+include(imageviewer/imageviewer.pri)

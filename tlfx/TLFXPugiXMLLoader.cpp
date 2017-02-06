@@ -102,6 +102,7 @@ namespace TLFX
         }
 
         shape->SetFilename   (_currentShape.attribute("URL").as_string());
+        shape->SetImportOpt  (_currentShape.attribute("IMPORT_OPTION").as_string());
         shape->SetWidth      (_currentShape.attribute("WIDTH").as_float());
         shape->SetHeight     (_currentShape.attribute("HEIGHT").as_float());
         shape->SetFramesCount(_currentShape.attribute("FRAMES").as_int());

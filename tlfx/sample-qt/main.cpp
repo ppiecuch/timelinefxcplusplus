@@ -5,12 +5,15 @@
 #include <QStandardPaths>
 #include <QSettings>
 #include <QMutex>
+#include <QImage>
+#include <QPixmap>
 #include <QPainter>
 #include <QWindow>
 #include <QOpenGLFunctions>
 #include <QOpenGLContext>
 #include <QOpenGLPaintDevice>
 #include <QOpenGLFramebufferObject>
+#include <QGLFramebufferObject>
 #include <QFileDialog>
 #include <QApplication>
 
@@ -22,6 +25,7 @@
 #include "qgeometry/qglbuilder.h"
 #include "qgeometry/qglsurface.h"
 #include "qgeometry/qglpainter.h"
+#include "imageviewer/imageviewer.h"
 
 #include "QtEffectsLibrary.h"
 
@@ -30,6 +34,11 @@
 #include <TLFXEffect.h>
 
 #include "debug_font.h"
+
+static QPixmap toPixmap(const QImage &im, int x, int y, int width, int height, float buffer_scale = 1);
+static void convertFromGLImage(QImage &img, int w, int h, bool alpha_format, bool include_alpha);
+static QImage qt_gl_read_framebuffer(const QSize &size, bool alpha_format = true, bool include_alpha = true);
+static QImage texture_to_image(const QSize &size, GLuint texture);
 
 // == Qt Window ==
 
@@ -99,12 +108,12 @@ static FPSComputer fps;
 const int Bg_cnt = 3;
 static struct {
     float color[4];
-    bool force_blend;
+    QtParticleManager::GlobalBlendModeType blend_mode;
     bool invert;
 } bg[Bg_cnt] = {
-    {{0, 0, 0, 1}, false, true},
-    {{0.99, 0.96, 0.89, 1}, true, false},
-    {{1, 1, 1, 1}, true, false}
+    {{0, 0, 0, 1}, QtParticleManager::FromEffectBlendMode, true},
+    {{0.99, 0.96, 0.89, 1}, QtParticleManager::AlphaBlendMode, false},
+    {{1, 1, 1, 1}, QtParticleManager::AlphaBlendMode, false}
 };
 
 class Window : public QWindow, protected QOpenGLFunctions
@@ -119,6 +128,7 @@ private:
     
     QtEffectsLibrary *m_effects;
     QtParticleManager *m_pm;
+    TLFX::Effect *m_disp_effect;
     quint32 m_curr_effect; // currently selected effect
     quint32 m_curr_bg; // current background style
     qint32 m_msg_line; // line with blending message
@@ -140,7 +150,7 @@ public:
 		, m_device(0)
         , m_fbo(0), m_surf(0)
         , m_curr_library(library)
-        , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
+        , m_effects(0), m_pm(0), m_disp_effect(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
@@ -154,8 +164,6 @@ public:
         fps.ComputeFPS();
         
         m_pm->SetScreenSize(m_size.width(), m_size.height());
-
-        glClearColor(bg[m_curr_bg].color[0], bg[m_curr_bg].color[1], bg[m_curr_bg].color[2], bg[m_curr_bg].color[3]);
         
         guard.lock();
 
@@ -164,6 +172,8 @@ public:
         m_p.begin(m_surf);
         m_p.projectionMatrix() = m_projm;
         m_p.setStandardEffect(QGL::VertColorTexture2D);
+        glClearColor(0,0,0,0);
+		glClear(GL_COLOR_BUFFER_BIT);
         m_pm->DrawParticles();
         m_pm->Flush();
         m_p.disableEffect();
@@ -186,6 +196,14 @@ public:
         m_p.begin(this);
         m_p.projectionMatrix() = QMatrix4x4();
         m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
+        glClearColor(bg[m_curr_bg].color[0], 
+            bg[m_curr_bg].color[1], 
+            bg[m_curr_bg].color[2], 
+            bg[m_curr_bg].color[3]);
+		glClear(GL_COLOR_BUFFER_BIT);
+        glEnable( GL_BLEND );
+        // ALPHA_ADD
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE );
         fbo_vert.draw(&m_p,0,6,QGL::Triangles);
         m_p.disableEffect();
         m_p.end();
@@ -196,7 +214,7 @@ public:
         dbgSetStatusLine(QString("Running effect: [%1]%2 | blending: %3 | FPS:%4")
         .arg(m_effects->AllEffects().size())
         .arg(m_effects->AllEffects().size()?QFileInfo(m_effects->AllEffects()[m_curr_effect].c_str()).fileName():"n/a")
-        .arg(m_pm->IsForceBlend()?"force blend":"effect blend")
+        .arg(m_pm->GlobalBlendModeInfo())
         .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
         );
         dbgFlush();
@@ -234,10 +252,10 @@ public:
         if (m_effects->AllEffects().size())
         {
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-            copy->SetPosition(0, 0);
+            m_disp_effect = new TLFX::Effect(*eff, m_pm);
+            m_disp_effect->SetPosition(0, 0);
 
-            m_pm->AddEffect(copy);
+            m_pm->AddEffect(m_disp_effect);
         } else
             qWarning() << "No effects found in the library";
 
@@ -249,16 +267,16 @@ public:
         dbgAppendMessage(" m: toggle blending mode");
         dbgAppendMessage(" p: toggle pause");
         dbgAppendMessage(" r: restart effect");
+        dbgAppendMessage(" s: show texture atlas");
         dbgAppendMessage(" o: open effect file");
         dbgSetPixelRatio(devicePixelRatio());
 
         dbgSetInvert(bg[m_curr_bg].invert);
-        m_pm->SetForceBlend(bg[m_curr_bg].force_blend);
+        m_pm->SetGlobalBlendMode(bg[m_curr_bg].blend_mode);
     }
 	void update() { renderLater(); }
 	void render() {
 		if (!m_device) m_device = new QOpenGLPaintDevice;
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		m_device->setSize(size());
 		QPainter painter(m_device);
 		render(&painter);
@@ -287,18 +305,23 @@ public:
 		switch(event->key()) {
         case Qt::Key_Q:
 		case Qt::Key_Escape: close(); break;
+		case Qt::Key_S: {
+            static ImageViewer *imv = new ImageViewer;
+            imv->openImage(texture_to_image(size(), m_effects->TextureAtlas()));
+            imv->show();
+        } break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
             // update default settings for this visual:
             dbgSetInvert(bg[m_curr_bg].invert);
-            m_pm->SetForceBlend(bg[m_curr_bg].force_blend);
+            m_pm->SetGlobalBlendMode(bg[m_curr_bg].blend_mode);
             break;
-		case Qt::Key_M: m_pm->ToggleForceBlend(); break;
+		case Qt::Key_M: m_pm->ToggleGlobalBlendMode(); break;
 		case Qt::Key_P: m_pm->TogglePause(); break;
 		case Qt::Key_T: dbgToggleInvert(); break;
 		case Qt::Key_O: {
             bool auto_refresh = m_auto_refresh;
-            m_auto_refresh = false; // pause bg. animation (preven open file dialog stucking)
+            m_auto_refresh = false; // pause bg. animation (prevent open file dialog stucking)
             QSettings settings;
             QString openPath = settings.value("LastOpenPath", QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)).toString();
             QString fileName = QFileDialog::getOpenFileName(0,
@@ -344,10 +367,10 @@ public:
             if (m_curr_effect == m_effects->AllEffects()[m_curr_effect].size()) 
                 m_curr_effect = 0;
             guard.lock();
-            m_pm->Reset();
+            if (m_disp_effect) m_pm->RemoveEffect(m_disp_effect);
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-            m_pm->AddEffect(copy);
+            m_disp_effect = new TLFX::Effect(*eff, m_pm);
+            m_pm->AddEffect(m_disp_effect);
             guard.unlock();
         } break;
         case Qt::Key_Less: 
@@ -357,10 +380,10 @@ public:
             else 
                 --m_curr_effect;
             guard.lock();
-            m_pm->Reset();
+            if (m_disp_effect) m_pm->RemoveEffect(m_disp_effect);
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-            m_pm->AddEffect(copy);
+            m_disp_effect = new TLFX::Effect(*eff, m_pm);
+            m_pm->AddEffect(m_disp_effect);
             guard.unlock();
         } break;
 		default: event->ignore();
@@ -436,7 +459,7 @@ int main(int argc, char *argv[]) {
 
 	QSurfaceFormat surface_format = QSurfaceFormat::defaultFormat();
 	surface_format.setAlphaBufferSize( 0 );
-	surface_format.setDepthBufferSize( 24 );
+	surface_format.setDepthBufferSize( 0 );
 	// surface_format.setRedBufferSize( 8 );
 	// surface_format.setBlueBufferSize( 8 );
 	// surface_format.setGreenBufferSize( 8 );
@@ -459,5 +482,101 @@ int main(int argc, char *argv[]) {
     return app.exec();
 }
 
+
+// Qt image/opengl functions:
+static QPixmap toPixmap(const QImage &im, int x, int y, int width, int height, float buffer_scale) {
+
+    int _width = float(im.width())/float(buffer_scale);
+    int _height = float(im.height())/float(buffer_scale);
+
+    Q_ASSERT(x < _width);
+    Q_ASSERT(y < _height);
+    Q_ASSERT(width <= _width);
+    Q_ASSERT(height <= height);
+
+    if (buffer_scale == 1)
+        return QPixmap::fromImage(im.mirrored(false, true).copy(x, y, width, height));
+    else
+        return QPixmap::fromImage(im
+            .mirrored(false, true)
+            .scaled(_width, _height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+            .copy(x, y, width, height));
+}
+
+static void convertFromGLImage(QImage &img, int w, int h, bool alpha_format, bool include_alpha) {
+    if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+        // OpenGL gives RGBA; Qt wants ARGB
+        uint *p = (uint*)img.bits();
+        uint *end = p + w*h;
+        if (alpha_format && include_alpha) {
+        while (p < end) {
+            uint a = *p << 24;
+            *p = (*p >> 8) | a;
+            p++;
+        }
+        } else {
+        // This is an old legacy fix for PowerPC based Macs, which
+        // we shouldn't remove
+        while (p < end) {
+            *p = 0xff000000 | (*p>>8);
+            ++p;
+        }
+        }
+    } else {
+        // OpenGL gives ABGR (i.e. RGBA backwards); Qt wants ARGB
+        for (int y = 0; y < h; y++) {
+        uint *q = (uint*)img.scanLine(y);
+        for (int x=0; x < w; ++x) {
+            const uint pixel = *q;
+            if (alpha_format && include_alpha) {
+            *q = ((pixel << 16) & 0xff0000) | ((pixel >> 16) & 0xff)
+                | (pixel & 0xff00ff00);
+            } else {
+            *q = 0xff000000 | ((pixel << 16) & 0xff0000)
+                | ((pixel >> 16) & 0xff) | (pixel & 0x00ff00);
+            }
+            
+            q++;
+        }
+        }
+        
+    }
+    img = img.mirrored();
+}
+
+static QImage qt_gl_read_framebuffer(const QSize &size, bool alpha_format, bool include_alpha) {
+    QImage img(size, (alpha_format && include_alpha) ? QImage::Format_ARGB32
+                : QImage::Format_RGB32);
+    int w = size.width();
+    int h = size.height();
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
+    convertFromGLImage(img, w, h, alpha_format, include_alpha);
+    return img;
+}
+
+//
+static QImage texture_to_image(const QSize &size, GLuint texture)
+{
+   const int nWidth = size.width();
+   const int nHeight = size.height();
+
+   QGLFramebufferObject *_out_fbo = new QGLFramebufferObject( nWidth, nHeight, GL_TEXTURE_2D ); 
+   if( !_out_fbo )
+       return QImage();
+
+   _out_fbo->bind( );
+
+   glViewport( 0, 0, nWidth, nHeight );   
+   glMatrixMode( GL_PROJECTION );
+   glLoadIdentity();  
+   glOrtho( 0.0, nWidth, 0.0, nHeight, -1.0, 1.0 );
+   glMatrixMode( GL_MODELVIEW );
+   glLoadIdentity( );
+   glEnable( GL_TEXTURE_2D );
+   
+   _out_fbo->drawTexture( QPointF(0.0,0.0), texture, GL_TEXTURE_2D );
+   _out_fbo->release();
+   return _out_fbo->toImage();
+}
 
 #include "main.moc"
