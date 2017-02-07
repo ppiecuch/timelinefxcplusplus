@@ -183,7 +183,10 @@ public:
     ~QAtlasManager();
 
     QTexture *create(const QImage &image);
-    GLuint atlasTextureId() const;
+
+    quint32 atlasTextureId() const;
+    QSize atlasTextureSize() const;
+
     void invalidate();
 
 private:

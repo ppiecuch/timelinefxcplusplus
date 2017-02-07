@@ -366,10 +366,9 @@ QTexture *QAtlasManager::create(const QImage &image)
     return t;
 }
 
-GLuint QAtlasManager::atlasTextureId() const
-{
-    return m_atlas->textureId();
-}
+GLuint QAtlasManager::atlasTextureId() const { return m_atlas->textureId(); }
+
+QSize QAtlasManager::atlasTextureSize() const { return m_atlas->size(); }
 
 QTextureAtlas::QTextureAtlas(const QSize &size)
     : m_allocator(size)

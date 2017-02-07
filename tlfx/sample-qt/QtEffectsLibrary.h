@@ -53,7 +53,8 @@ public:
     virtual TLFX::XMLLoader* CreateLoader() const;
     virtual TLFX::AnimImage* CreateImage() const;
     
-    GLuint TextureAtlas() { return _atlas->atlasTextureId(); }
+    quint32 TextureAtlas() { return _atlas->atlasTextureId(); }
+    QSize TextureAtlasSize() { return _atlas->atlasTextureSize(); }
 
 protected:
     QString _library;

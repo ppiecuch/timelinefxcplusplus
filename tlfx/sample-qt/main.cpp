@@ -306,9 +306,12 @@ public:
         case Qt::Key_Q:
 		case Qt::Key_Escape: close(); break;
 		case Qt::Key_S: {
-            static ImageViewer *imv = new ImageViewer;
-            imv->openImage(texture_to_image(size(), m_effects->TextureAtlas()));
-            imv->show();
+            ImageViewer imv;
+            imv.openImage(texture_to_image(m_effects->TextureAtlasSize(), m_effects->TextureAtlas()));
+            bool auto_refresh = m_auto_refresh;
+            m_auto_refresh = false; // pause animation
+            imv.exec();
+            m_auto_refresh = auto_refresh;
         } break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
@@ -321,7 +324,7 @@ public:
 		case Qt::Key_T: dbgToggleInvert(); break;
 		case Qt::Key_O: {
             bool auto_refresh = m_auto_refresh;
-            m_auto_refresh = false; // pause bg. animation (prevent open file dialog stucking)
+            m_auto_refresh = false; // pause animation (prevent open file dialog stucking)
             QSettings settings;
             QString openPath = settings.value("LastOpenPath", QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)).toString();
             QString fileName = QFileDialog::getOpenFileName(0,
