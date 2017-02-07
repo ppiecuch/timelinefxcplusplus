@@ -156,7 +156,7 @@ public:
 	}
 	~Window() { delete m_surf; delete m_fbo; delete m_device; }
 	
-	void setAutoRefresh(bool a) { m_auto_refresh = a; }
+	void setAutoRefresh(bool a) { m_auto_refresh = a; renderLater(); }
 	
 	void render(QPainter *painter) {
 		Q_UNUSED(painter);
@@ -211,10 +211,12 @@ public:
 
         guard.unlock();
 
-        dbgSetStatusLine(QString("Running effect: [%1]%2 | blending: %3 | FPS:%4")
+        dbgSetStatusLine(QString("Running effect: [%1]%2 | blending: %3 | atlas: %4x%5 | FPS:%6")
         .arg(m_effects->AllEffects().size())
         .arg(m_effects->AllEffects().size()?QFileInfo(m_effects->AllEffects()[m_curr_effect].c_str()).fileName():"n/a")
         .arg(m_pm->GlobalBlendModeInfo())
+        .arg(m_effects->TextureAtlasSize().width())
+        .arg(m_effects->TextureAtlasSize().height())
         .arg(qRound(fps.GetLastAverage())).toLatin1().constData()
         );
         dbgFlush();
@@ -309,9 +311,9 @@ public:
             ImageViewer imv;
             imv.openImage(texture_to_image(m_effects->TextureAtlasSize(), m_effects->TextureAtlas()));
             bool auto_refresh = m_auto_refresh;
-            m_auto_refresh = false; // pause animation
+            setAutoRefresh(false); // pause animation
             imv.exec();
-            m_auto_refresh = auto_refresh;
+            setAutoRefresh(auto_refresh);
         } break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
@@ -324,7 +326,7 @@ public:
 		case Qt::Key_T: dbgToggleInvert(); break;
 		case Qt::Key_O: {
             bool auto_refresh = m_auto_refresh;
-            m_auto_refresh = false; // pause animation (prevent open file dialog stucking)
+            setAutoRefresh(false); // pause animation (prevent open file dialog stucking)
             QSettings settings;
             QString openPath = settings.value("LastOpenPath", QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)).toString();
             QString fileName = QFileDialog::getOpenFileName(0,
@@ -351,7 +353,7 @@ public:
                 } else
                         qWarning() << "Failed to load the library" << fileName;
                 guard.unlock();
-                m_auto_refresh = auto_refresh;
+                setAutoRefresh(auto_refresh);
             }
         } break;
 		case Qt::Key_R: {
@@ -370,7 +372,7 @@ public:
             if (m_curr_effect == m_effects->AllEffects()[m_curr_effect].size()) 
                 m_curr_effect = 0;
             guard.lock();
-            if (m_disp_effect) m_pm->RemoveEffect(m_disp_effect);
+            m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
             m_disp_effect = new TLFX::Effect(*eff, m_pm);
             m_pm->AddEffect(m_disp_effect);
@@ -383,7 +385,7 @@ public:
             else 
                 --m_curr_effect;
             guard.lock();
-            if (m_disp_effect) m_pm->RemoveEffect(m_disp_effect);
+            m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
             m_disp_effect = new TLFX::Effect(*eff, m_pm);
             m_pm->AddEffect(m_disp_effect);

@@ -23,7 +23,7 @@
 
 /** KDE effect code */
 static void __toGray(QImage &img, float value);
-static void __toGray2(QImage &img, float value);
+static void __toGray2(QImage &img);
 static void __colorize(QImage &img, const QColor &col, float value);
 static void __toMonochrome(QImage &img, const QColor &black,
                                const QColor &white, float value);
@@ -191,7 +191,7 @@ bool QtImage::Load( const char *filename )
         else
         {
             switch (_importOpt) {
-                case impGreyScale: break;
+                case impGreyScale:  __toGray2(img); break;
                 case impFullColour: break;
                 case impPassThrough: break;
                 default: break;
@@ -247,7 +247,7 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
         || (additive != _lastAdditive))
         Flush();
 
-    QRectF rc(0,0,1,1);
+    QRectF rc = dynamic_cast<QtImage*>(sprite)->GetTexture()->normalizedTextureSubRect();
     // calculate frame position in atlas:
     if (sprite && sprite->GetFramesCount() > 1)
     {
@@ -255,9 +255,10 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
         const int atlas_cell = sqrtf(atlas_size);
         const int atlas_frame = roundf(frame);
         const int gr = atlas_frame / atlas_cell, gc = atlas_frame % atlas_cell;
-        const float cw = 1.0/atlas_cell, ch = 1.0/atlas_cell;
+        const float cw = rc.width()/atlas_cell, ch = rc.height()/atlas_cell;
         rc = QRectF(gc*cw, 1 - gr*ch - ch, cw, ch);
     }
+    
     //uvs[index + 0] = {0, 0};
     batch.appendTexCoord(QVector2D(rc.x(), rc.y()));
     //uvs[index + 1] = {1.0f, 0}
@@ -432,32 +433,19 @@ static void __toGray(QImage &img, float value)
 //    p[0] = 255
 //    p[1] = p[0]
 //    p[2] = p[0]
-//p[3] = c
+//    p[3] = c
 //Next
-static void __toGray2(QImage &img, float value)
+static void __toGray2(QImage &img)
 {
-    if(value == 0.0)
-        return;
-
     KIEImgEdit ii(img);
     QRgb *data = ii.data;
     QRgb *end = data + ii.pixels;
 
     unsigned char gray;
-    if(value == 1.0){
-        while(data != end){
-            gray = qGray(*data);
-            *data = qRgba(gray, gray, gray, qAlpha(*data));
-            ++data;
-        }
-    }
-    else{
-        unsigned char val = (unsigned char)(255.0*value);
-        while(data != end){
-            gray = qMin((qRed(*data)*30+qGreen(*data)*59+qBlue(*data)*11)/100, qAlpha(*data));
-            *data = qRgba(255, 255, 255, gray);
-            ++data;
-        }
+    while(data != end){
+        gray = qMin((qRed(*data)*30+qGreen(*data)*59+qBlue(*data)*11)/100, qAlpha(*data));
+        *data = qRgba(255, 255, 255, gray);
+        ++data;
     }
 }
 
