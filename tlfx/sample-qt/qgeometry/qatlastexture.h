@@ -174,20 +174,24 @@ private:
     uint m_retain_image: 1;
 };
 
+#define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(512,512)
+
 class QAtlasManager : public QObject
 {
     Q_OBJECT
 
 public:
-    QAtlasManager();
+    QAtlasManager(QSize defaultAtlasSize = QGEOM_DEF_TEXTURE_ATLAS_SIZE);
     ~QAtlasManager();
+
+    void ensureTextureAtlasSize(QSize reqAtlasSize);
 
     QTexture *create(const QImage &image);
 
     quint32 atlasTextureId() const;
     QSize atlasTextureSize() const;
 
-    void invalidate();
+    void invalidate(QSize reqAtlasSize = QSize());
 
 private:
     QTextureAtlas *m_atlas;

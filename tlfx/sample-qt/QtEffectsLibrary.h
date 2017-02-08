@@ -49,12 +49,16 @@ public:
     ~QtEffectsLibrary();
 
     bool LoadLibrary(const char *library, const char *filename = 0, bool compile = true);
+    void ClearAll(QSize reqAtlasSize = QSize()) {
+        TLFX::EffectsLibrary::ClearAll();
+        _atlas->invalidate(reqAtlasSize);
+    }
 
     virtual TLFX::XMLLoader* CreateLoader() const;
     virtual TLFX::AnimImage* CreateImage() const;
     
-    quint32 TextureAtlas() { return _atlas->atlasTextureId(); }
-    QSize TextureAtlasSize() { return _atlas->atlasTextureSize(); }
+    quint32 TextureAtlas() const { return _atlas->atlasTextureId(); }
+    QSize TextureAtlasSize() const { return _atlas->atlasTextureSize(); }
 
 protected:
     QString _library;

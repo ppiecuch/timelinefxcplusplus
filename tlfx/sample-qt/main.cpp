@@ -222,6 +222,19 @@ public:
         dbgFlush();
     }
 	
+    void loadCurrLibrary()
+    {
+        if (m_curr_library.isEmpty())
+        {
+            if (!m_effects->Load(":/data/particles/data.xml")) // default res. effect
+                qWarning() << "Failed to load :/data/particles/data.xml resources.";
+        } else if (!m_effects->LoadLibrary(m_curr_library.toUtf8().constData()))
+        {
+            m_curr_library = ""; // no library loaded
+            m_effects->Load(":/data/particles/data.xml"); // try with embedded one
+        }
+    }
+
 	void initialize() {
 		qDebug() << "OpenGL infos with gl functions:";
 		qDebug() << "-------------------------------";
@@ -236,17 +249,7 @@ public:
         ensureFbo();
 
         m_effects = new QtEffectsLibrary();
-        if (m_curr_library.isEmpty())
-        {
-            if (!m_effects->Load(":/data/particles/data.xml")) // default res. effect
-                qWarning() << "Failed to load :/data/particles/data.xml resources.";
-        }
-        else
-            if (!m_effects->LoadLibrary(m_curr_library.toUtf8().constData()))
-            {
-                m_curr_library = ""; // no library loaded
-                m_effects->Load(":/data/particles/data.xml"); // try with embedded one
-            }
+        loadCurrLibrary();
         
         m_pm = new QtParticleManager(&m_p);
         m_pm->SetOrigin(0, 0);
@@ -270,6 +273,7 @@ public:
         dbgAppendMessage(" p: toggle pause");
         dbgAppendMessage(" r: restart effect");
         dbgAppendMessage(" s: show texture atlas");
+        dbgAppendMessage(" i: switch texture atlas quality");
         dbgAppendMessage(" o: open effect file");
         dbgSetPixelRatio(devicePixelRatio());
 
@@ -315,6 +319,25 @@ public:
             imv.exec();
             setAutoRefresh(auto_refresh);
         } break;
+		case Qt::Key_I: {
+            static int max_atlas_tex_size[] = {512,1024,2048, -1};
+            const int area = m_effects->TextureAtlasSize().width()*m_effects->TextureAtlasSize().height();
+            int *m=max_atlas_tex_size; while(*++m!=-1) {
+                if (*m * *m > area) break;
+            }
+            if (*m==-1) 
+                m=max_atlas_tex_size; // from the beginning
+            guard.lock();
+            m_effects->ClearAll(QSize(*m, *m));
+            // reload library
+            loadCurrLibrary();
+            TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
+            m_disp_effect = new TLFX::Effect(*eff, m_pm);
+            m_disp_effect->SetPosition(0, 0);
+            m_pm->Reset();
+            m_pm->AddEffect(m_disp_effect);
+            guard.unlock();
+        } break;
 		case Qt::Key_B: 
             ++m_curr_bg %= Bg_cnt; 
             // update default settings for this visual:
@@ -343,11 +366,11 @@ public:
                     if (m_effects->AllEffects().size())
                     {
                         TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-                        TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-                        copy->SetPosition(0, 0);
+                        m_disp_effect = new TLFX::Effect(*eff, m_pm);
+                        m_disp_effect->SetPosition(0, 0);
                         
                         m_pm->Reset();
-                        m_pm->AddEffect(copy);
+                        m_pm->AddEffect(m_disp_effect);
                     } else
                         qWarning() << "No effects found in the library";
                 } else

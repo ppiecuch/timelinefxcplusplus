@@ -40,7 +40,7 @@ QtEffectsLibrary::QtEffectsLibrary() : _atlas(0)
         qWarning() << "[QtEffectsLibrary] Application is not initialized.";
     else
         SetUpdateFrequency(qApp->primaryScreen()->refreshRate());
-    
+
     _atlas = new QAtlasManager;
 }
 
@@ -251,12 +251,12 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
     // calculate frame position in atlas:
     if (sprite && sprite->GetFramesCount() > 1)
     {
-        const int atlas_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
-        const int atlas_cell = sqrtf(atlas_size);
-        const int atlas_frame = roundf(frame);
-        const int gr = atlas_frame / atlas_cell, gc = atlas_frame % atlas_cell;
-        const float cw = rc.width()/atlas_cell, ch = rc.height()/atlas_cell;
-        rc = QRectF(gc*cw, 1 - gr*ch - ch, cw, ch);
+        const int anim_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
+        const int anim_cell = sqrtf(anim_size);
+        const int anim_frame = roundf(frame);
+        const int gr = anim_frame / anim_cell, gc = anim_frame % anim_cell;
+        const float cw = rc.width()/anim_cell, ch = rc.height()/anim_cell;
+        rc = QRectF(rc.x()+gc*cw, 1 - (rc.y()+gr*ch-ch), cw, ch);
     }
     
     //uvs[index + 0] = {0, 0};

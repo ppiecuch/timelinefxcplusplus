@@ -311,32 +311,10 @@ void QAreaAllocator::mergeNodeWithNeighbors(QAreaAllocatorNode *node)
 } // namespace QGL
 
 
-QAtlasManager::QAtlasManager()
+QAtlasManager::QAtlasManager(QSize defaultAtlasSize)
     : m_atlas(0)
 {
-    QOpenGLContext *gl = QOpenGLContext::currentContext();
-    Q_ASSERT(gl);
-    QSurface *surface = gl->surface();
-    QSize surfaceSize = surface->size();
-    int max;
-    gl->functions()->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
-
-    int w = qMin(max, qt_envInt("QGEOM_ATLAS_WIDTH", qMax(512U, qNextPowerOfTwo(surfaceSize.width() - 1))));
-    int h = qMin(max, qt_envInt("QGEOM_ATLAS_HEIGHT", qMax(512U, qNextPowerOfTwo(surfaceSize.height() - 1))));
-
-    if (surface->surfaceClass() == QSurface::Window) {
-        QWindow *window = static_cast<QWindow *>(surface);
-        // Coverwindows, optimize for memory rather than speed
-        if ((window->type() & Qt::CoverWindow) == Qt::CoverWindow) {
-            w /= 2;
-            h /= 2;
-        }
-    }
-
-    m_atlas_size_limit = qt_envInt("QGEOM_ATLAS_SIZE_LIMIT", qMax(w, h) / 2);
-    m_atlas_size = QSize(w, h);
-
-    qCDebug(QGEOM_LOG_INFO, "texture atlas dimensions: %dx%d", w, h);
+    ensureTextureAtlasSize(defaultAtlasSize);
 }
 
 
@@ -345,13 +323,31 @@ QAtlasManager::~QAtlasManager()
     Q_ASSERT(m_atlas == 0);
 }
 
-void QAtlasManager::invalidate()
+void QAtlasManager::ensureTextureAtlasSize(QSize reqAtlasSize)
+{
+    QOpenGLContext *gl = QOpenGLContext::currentContext();
+    Q_ASSERT(gl);
+    int max;
+    gl->functions()->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
+
+    int w = qMin(max, qt_envInt("QGEOM_ATLAS_WIDTH", quint32(reqAtlasSize.width())));
+    int h = qMin(max, qt_envInt("QGEOM_ATLAS_HEIGHT", quint32(reqAtlasSize.height())));
+
+    m_atlas_size_limit = qt_envInt("QGEOM_ATLAS_SIZE_LIMIT", qMax(w, h) / 2);
+    m_atlas_size = QSize(w, h);
+
+    qCDebug(QGEOM_LOG_INFO, "texture atlas dimensions: %dx%d", w, h);
+}
+
+void QAtlasManager::invalidate(QSize reqAtlasSize)
 {
     if (m_atlas) {
         m_atlas->invalidate();
         m_atlas->deleteLater();
         m_atlas = 0;
     }
+    if (reqAtlasSize.isValid() && reqAtlasSize != m_atlas_size)
+        ensureTextureAtlasSize(reqAtlasSize);
 }
 
 QTexture *QAtlasManager::create(const QImage &image)
