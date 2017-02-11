@@ -115,7 +115,11 @@ private:
     uint m_debug_overlay : 1;
 };
 
-#define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(512,512)
+#ifndef QT_OPENGL_ES
+# define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(1024,1024)
+#else
+# define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(512,512)
+#endif
 #define QGEOM_TEXTURE_ATLAS_PADDING QSize(2,2)
 
 class QAtlasManager : public QObject
