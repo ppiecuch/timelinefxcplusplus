@@ -56,7 +56,7 @@ struct QAreaAllocatorNode;
 class QAreaAllocator
 {
 public:
-    QAreaAllocator(const QSize &size);
+    QAreaAllocator(const QSize &size, const QSize &padding = QSize());
     ~QAreaAllocator();
 
     QRect allocate(const QSize &size);
@@ -69,7 +69,7 @@ private:
     void mergeNodeWithNeighbors(QAreaAllocatorNode *node);
 
     QAreaAllocatorNode *m_root;
-    QSize m_size;
+    QSize m_size, m_padding;
 };
 
 } // namespace QGL
@@ -115,6 +115,37 @@ private:
     uint m_debug_overlay : 1;
 };
 
+#define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(512,512)
+#define QGEOM_TEXTURE_ATLAS_PADDING QSize(2,2)
+
+class QAtlasManager : public QObject
+{
+    Q_OBJECT
+
+public:
+    static constexpr QSize padding = QGEOM_TEXTURE_ATLAS_PADDING;
+
+public:
+    QAtlasManager(QSize defAtlasSize = QGEOM_DEF_TEXTURE_ATLAS_SIZE);
+    ~QAtlasManager();
+
+    void ensureTextureAtlasSize(QSize reqAtlasSize);
+
+    QTexture *create(const QImage &image);
+
+    quint32 atlasTextureId() const;
+    QSize atlasTextureSize() const;
+    int atlasTextureSizeLimit() const { return m_atlas_size_limit; }
+
+    void invalidate(QSize reqAtlasSize = QSize());
+
+private:
+    QTextureAtlas *m_atlas;
+
+    QSize m_atlas_size;
+    int m_atlas_size_limit;
+};
+
 class QTexture : public QObject
 {
     Q_OBJECT
@@ -143,8 +174,11 @@ public:
     }
 
     QRect atlasSubRect() const { return m_allocated_rect; }
-    QRect atlasSubRectWithoutPadding() const { return m_allocated_rect.adjusted(1, 1, -1, -1); }
-
+    QRect atlasSubRectWithoutPadding() const 
+    {
+        const int bx = QAtlasManager::padding.width()/2, by = QAtlasManager::padding.height()/2;
+        return m_allocated_rect.adjusted(bx, by, -bx, -by); 
+    }
     bool isTexture() const { return true; }
 
     QOpenGLTexture::Filter filtering() const { return m_filtering; }
@@ -172,32 +206,6 @@ private:
     uint m_owns_texture : 1;
     uint m_mipmaps_generated : 1;
     uint m_retain_image: 1;
-};
-
-#define QGEOM_DEF_TEXTURE_ATLAS_SIZE QSize(512,512)
-
-class QAtlasManager : public QObject
-{
-    Q_OBJECT
-
-public:
-    QAtlasManager(QSize defaultAtlasSize = QGEOM_DEF_TEXTURE_ATLAS_SIZE);
-    ~QAtlasManager();
-
-    void ensureTextureAtlasSize(QSize reqAtlasSize);
-
-    QTexture *create(const QImage &image);
-
-    quint32 atlasTextureId() const;
-    QSize atlasTextureSize() const;
-
-    void invalidate(QSize reqAtlasSize = QSize());
-
-private:
-    QTextureAtlas *m_atlas;
-
-    QSize m_atlas_size;
-    int m_atlas_size_limit;
 };
 
 QT_END_NAMESPACE

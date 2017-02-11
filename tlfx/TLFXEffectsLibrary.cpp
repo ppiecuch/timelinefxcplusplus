@@ -105,9 +105,10 @@ bool EffectsLibrary::Load( const char *filename, bool compile /*= true*/ )
         AnimImage *shape;
         while ((shape = CreateImage()), loader->GetNextShape(shape))
         {
-            AddSprite(shape);
+            if (!AddSprite(shape))
+                goto end;
         }
-        delete shape;               // last even shape is safe to delete
+        delete shape; // last even shape is safe to delete
 
         Effect *effect;
         while ((effect = loader->GetNextEffect(_shapeList)))
@@ -123,6 +124,7 @@ bool EffectsLibrary::Load( const char *filename, bool compile /*= true*/ )
         _name = filename;
     }
 
+end:
     delete loader;
     return loaded;
 }
@@ -262,7 +264,7 @@ bool EffectsLibrary::AddSprite( AnimImage *sprite )
         sprite->SetName(name);
     }
 
-    if (!sprite->Load(filename))
+    if (!sprite->Load())
         return false;
 
     _shapeList.push_back(sprite);

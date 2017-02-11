@@ -85,6 +85,11 @@ namespace TLFX
             _importOpt = impPassThrough;
     }
 
+    AnimImage::ImportOptions AnimImage::GetImportOpt() const
+    {
+        return _importOpt;
+    }
+
     void AnimImage::SetName( const char *name )
     {
         _name = name;

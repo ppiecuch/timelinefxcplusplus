@@ -17,6 +17,7 @@ namespace TLFX
     {
     public:
         PugiXMLLoader(int shapes, const char *libraryfile = 0) : XMLLoader(shapes), _library(libraryfile) {}
+        PugiXMLLoader(const char *libraryfile) : XMLLoader(0), _library(libraryfile) {}
 
         virtual bool        Open(const char *filename);
         virtual bool        GetNextShape(AnimImage *shape);

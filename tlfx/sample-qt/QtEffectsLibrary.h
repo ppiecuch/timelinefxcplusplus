@@ -26,20 +26,17 @@ class XMLLoader;
 class QtImage : public TLFX::AnimImage
 {
 public:
-    QtImage(QAtlasManager *atlas, const QString &library = "")
-    : _library(library)
-    , _texture(0) , _atlas(atlas) { }
+    QtImage() : _texture(0) { }
 
-    virtual bool Load(const char *filename);
+    virtual bool Load();
     QTexture *GetTexture() const { return _texture; }
+    void SetTexture(QTexture *texture, const QString &imageName) { _texture = texture; _image = imageName; }
+    void SetTexture(QTexture *texture) { _texture = texture; }
     QString GetImageName() const { return _image; }
 
 protected:
-    QString _library;
     QString _image;
-
     QPointer<QTexture> _texture;
-    QPointer<QAtlasManager> _atlas;
 };
 
 class QtEffectsLibrary : public TLFX::EffectsLibrary
@@ -56,9 +53,12 @@ public:
 
     virtual TLFX::XMLLoader* CreateLoader() const;
     virtual TLFX::AnimImage* CreateImage() const;
-    
+
     quint32 TextureAtlas() const { return _atlas->atlasTextureId(); }
     QSize TextureAtlasSize() const { return _atlas->atlasTextureSize(); }
+
+    bool ensureTextureSize(int &w, int &h);
+    bool UploadTextures();
 
 protected:
     QString _library;

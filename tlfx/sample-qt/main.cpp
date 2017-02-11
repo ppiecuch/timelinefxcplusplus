@@ -228,11 +228,15 @@ public:
         {
             if (!m_effects->Load(":/data/particles/data.xml")) // default res. effect
                 qWarning() << "Failed to load :/data/particles/data.xml resources.";
-        } else if (!m_effects->LoadLibrary(m_curr_library.toUtf8().constData()))
+        } 
+        else if (!m_effects->LoadLibrary(m_curr_library.toUtf8().constData()))
         {
             m_curr_library = ""; // no library loaded
             m_effects->Load(":/data/particles/data.xml"); // try with embedded one
         }
+        if(!m_effects->UploadTextures())
+            // cannot initialize library
+            m_effects->ClearAll();
     }
 
 	void initialize() {

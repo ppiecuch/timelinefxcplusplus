@@ -22,7 +22,7 @@ namespace TLFX
             impPassThrough
         };
 
-        virtual bool Load(const char *filename) = 0;
+        virtual bool Load() = 0;
 
         void                SetWidth(float width);
         virtual float       GetWidth() const;
@@ -37,6 +37,7 @@ namespace TLFX
         void                SetFilename(const char *filename);
         virtual const char *GetFilename() const;
         void                SetImportOpt(const char *opt);
+        ImportOptions GetImportOpt() const;
         void                SetName(const char *name);
         virtual const char *GetName() const;
 

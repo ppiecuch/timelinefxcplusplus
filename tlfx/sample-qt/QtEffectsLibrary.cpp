@@ -34,6 +34,12 @@ static QImage __doublePixels(const QImage &src);
 static void __overlay(QImage &src, QImage &overlay);
 static void __overlay(QImage &src, QImage &overlay);
 
+bool QtImage::Load()
+{
+    return true;
+}
+
+
 QtEffectsLibrary::QtEffectsLibrary() : _atlas(0)
 {
     if (qApp == 0)
@@ -98,30 +104,80 @@ bool QtEffectsLibrary::LoadLibrary(const char *library, const char *filename /* 
     // Keep library we are using for effects
     _library = library;
 
-    if(!Load(libraryinfo.toUtf8().constData())) 
-        return false;
-
-    return true;   
+    return Load(libraryinfo.toUtf8().constData(), compile);
 }
 
 TLFX::XMLLoader* QtEffectsLibrary::CreateLoader() const
 {
-    return new TLFX::PugiXMLLoader(0, _library.isEmpty()?0:_library.toUtf8().constData());
+    return new TLFX::PugiXMLLoader(_library.isEmpty()?0:_library.toUtf8().constData());
 }
 
 TLFX::AnimImage* QtEffectsLibrary::CreateImage() const
 {
-    return new QtImage(_atlas, _library);
+    return new QtImage();
 }
 
-bool QtImage::Load( const char *filename )
+bool QtEffectsLibrary::ensureTextureSize(int &w, int &h)
 {
-    if (filename==0 || strlen(filename)==0)
+    // for texture bigger then atlas fix the size to textureLimit:
+    if (w > _atlas->atlasTextureSize().width() || h > _atlas->atlasTextureSize().height())
     {
-        qWarning() << "[QtImage] Empty image filename";
+        qreal scale = qMin( _atlas->atlasTextureSizeLimit()/qreal(w),
+                            _atlas->atlasTextureSizeLimit()/qreal(h) );
+        w *= scale; h *= scale;
+        return false; // donot scale - keep size
+    // if greater than atlas limit, make the size scaled :
+    } else if (w > _atlas->atlasTextureSizeLimit() || h > _atlas->atlasTextureSizeLimit())
+    {
+        qreal scale = qMin( _atlas->atlasTextureSizeLimit()/qreal(w),
+                            _atlas->atlasTextureSizeLimit()/qreal(h) );
+        w *= scale; h *= scale;
+    }
+    return true; // scale
+}
+
+bool QtEffectsLibrary::UploadTextures()
+{
+    // try calculate best fit into current atlas texture:
+    int minw = 0, maxw = 0, minh = 0, maxh = 0;
+    Q_FOREACH(TLFX::AnimImage *shape, _shapeList)
+    {
+        const int w = shape->GetWidth();
+        const int h = shape->GetHeight();
+        if (w < minw) minw = w;
+        if (h < minh) minh = h;
+        if (w > maxw) maxw = w;
+        if (h > maxh) maxh = h;
+    }
+#define SC(x) (sc/(1.1+(x-minw)/(maxw-minw))) // 1-2
+    qreal sc = 1.5; bool done = false; while(!done && sc > 0)
+    {
+        QGL::QAreaAllocator m_allocator(_atlas->atlasTextureSize(), _atlas->padding);
+        qDebug() << "[QtEffectsLibrary] Scaling texture atlas with" << sc;
+        done = true; Q_FOREACH(TLFX::AnimImage *shape, _shapeList)
+        {
+            const int anim_size = powf(2, ceilf(log2f(shape->GetFramesCount())));
+            const int anim_square = sqrtf(anim_size);
+            int w = shape->GetWidth()*anim_square;
+            int h = shape->GetHeight()*anim_square;
+            if(ensureTextureSize(w, h))
+            {
+                w *= SC(w);
+                h *= SC(h);
+            }
+            QRect rc = m_allocator.allocate(QSize(w, h));
+            if (rc.width() == 0 || rc.height() == 0) 
+            {
+                sc -= 0.05; done = false; break; // next step
+            }
+        }
+    }
+    if (!done) {
+        qDebug() << "[QtEffectsLibrary] Cannot build texture atlas.";
         return false;
     }
-    if (!_library.isEmpty()) {
+    if (!_library.isEmpty()) 
+    {
         struct zip_archive_t {
             zip_archive_t() { memset(&za, 0, sizeof(mz_zip_archive)); }
             ~zip_archive_t() { mz_zip_reader_end(&za); }
@@ -134,85 +190,126 @@ bool QtImage::Load( const char *filename )
         mz_bool status = zip_archive.init_file(_library.toUtf8().constData());
         if (status)
         {
-            // Try to extract all the files to the heap.
-            QStringList variants; 
-            variants
-                << filename
-                << QFileInfo(filename).fileName()
-                << QFileInfo(QString(filename).replace("\\","/")).fileName();
-            Q_FOREACH(QString fn, variants)
+            Q_FOREACH(TLFX::AnimImage *shape, _shapeList)
             {
-                size_t uncomp_size;
-                void *p = mz_zip_extract_file_to_heap(&zip_archive, fn.toUtf8().constData(), &uncomp_size, 0);
-                if (p == 0) 
+                const char *filename = shape->GetFilename();
+                const int anim_size = powf(2, ceilf(log2f(shape->GetFramesCount())));
+                const int anim_square = sqrtf(anim_size);
+                int w = shape->GetWidth()*anim_square;
+                int h = shape->GetHeight()*anim_square;
+                if(ensureTextureSize(w, h))
                 {
-                    continue; // Try next name
+                    w *= SC(w);
+                    h *= SC(h);
                 }
 
-                qDebug() << "[QtImage] Successfully extracted file" << fn << "size" << uncomp_size;
-
-                QImage img = QImage::fromData((const uchar *)p, uncomp_size);
-                if (img.isNull())
+                if (filename==0 || strlen(filename)==0)
                 {
-                    qWarning() << "[QtImage] Failed to create image:" << filename;
+                    qWarning() << "[QtEffectsLibrary] Empty image filename";
+                    continue;
                 }
-                else
+                // Try to extract all the files to the heap.
+                QStringList variants; 
+                variants
+                    << filename
+                    << QFileInfo(filename).fileName()
+                    << QFileInfo(QString(filename).replace("\\","/")).fileName();
+                Q_FOREACH(QString fn, variants)
                 {
-                    _texture = _atlas->create(img.mirrored());
-                    _image = filename;
+                    size_t uncomp_size;
+                    void *p = mz_zip_extract_file_to_heap(&zip_archive, fn.toUtf8().constData(), &uncomp_size, 0);
+                    if (p == 0) 
+                    {
+                        continue; // Try next name
+                    }
+
+                    qDebug() << "[QtEffectsLibrary] Successfully extracted file" << fn << uncomp_size << "bytes";
+
+                    QImage img = QImage::fromData((const uchar *)p, uncomp_size);
+
+                    if (img.isNull())
+                    {
+                        qWarning() << "[QtEffectsLibrary] Failed to create image:" << filename;
+                        return false;
+                    }
+                    else
+                    {
+                        switch (shape->GetImportOpt()) {
+                            case QtImage::impGreyScale:  __toGray2(img); break;
+                            case QtImage::impFullColour: break;
+                            case QtImage::impPassThrough: break;
+                            default: break;
+                        }
+
+                        // scale images to fit atlas
+                        QTexture *texture = _atlas->create(img.scaled(QSize(w,h)).mirrored());
+                        dynamic_cast<QtImage*>(shape)->SetTexture(texture, filename);
+                        if (texture == 0) {
+                            qWarning() << "[QtEffectsLibrary] Failed to create texture for image" << filename << img.size() << QString("%1 frames").arg(shape->GetFramesCount());
+                            return false;
+                        } else
+                            break;
+                    }                    
+                    // We're done.
+                    mz_free(p);
                 }
-
-                // We're done.
-                mz_free(p);
-
-                return true;
+                if (0 == dynamic_cast<QtImage*>(shape)->GetTexture()) 
+                {
+                    qWarning() << "[QtEffectsLibrary] Failed to extract file" << filename;
+                    return false;
+                }
             }
-            qWarning() << "[QtImage] Failed to extract file" << filename;
-            return false;
-        }
-        else
-        {
-            qWarning() << "[QtImage] Cannot open library file" << _library;
+            return true;
+        } else {
+            qWarning() << "[QtEffectsLibrary] Cannot open library file" << _library;
             return false;
         }
     } else {
-        QFile f(filename);
-        if (!f.exists())
-            f.setFileName(QString(":/data/%1").arg(filename));
-        if (!f.exists()) {
-            qWarning() << "[QtImage] Failed to load image:" << filename;
-            return false;
-        }
-        QImage img(f.fileName());
-        if (img.isNull())
+        Q_FOREACH(TLFX::AnimImage *shape, _shapeList)
         {
-            qWarning() << "[QtImage] Failed to load image:" << filename;
-        }
-        else
-        {
-            switch (_importOpt) {
-                case impGreyScale:  __toGray2(img); break;
-                case impFullColour: break;
-                case impPassThrough: break;
-                default: break;
+            const char *filename = shape->GetFilename();
+            const int anim_size = powf(2, ceilf(log2f(shape->GetFramesCount())));
+            const int anim_square = sqrtf(anim_size);
+            int w = shape->GetWidth()*anim_square;
+            int h = shape->GetHeight()*anim_square;
+            if(ensureTextureSize(w, h))
+            {
+                w *= SC(w);
+                h *= SC(h);
             }
 
-            // scale images to fit atlas
-            if (_frames == 1)
-                img = img.scaled(64, 64);
+            QFile f(filename);
+            if (!f.exists())
+                f.setFileName(QString(":/data/%1").arg(filename));
+            if (!f.exists()) {
+                qWarning() << "[QtImage] Failed to load image:" << filename;
+                return false;
+            }
+            QImage img(f.fileName());
+            if (img.isNull())
+            {
+                qWarning() << "[QtImage] Failed to load image:" << filename;
+                return false;
+            }
             else
             {
-                const int sc = sqrtf(_frames);
-                img = img.scaled(64*sc, 64*sc);
+                switch (shape->GetImportOpt()) {
+                    case QtImage::impGreyScale:  __toGray2(img); break;
+                    case QtImage::impFullColour: break;
+                    case QtImage::impPassThrough: break;
+                    default: break;
+                }
+
+                // scale images to fit atlas
+                QTexture *texture = _atlas->create(img.scaled(QSize(w,h)).mirrored());
+                dynamic_cast<QtImage*>(shape)->SetTexture(texture, filename);
+                if (texture == 0) {
+                    qWarning() << "[QtImage] Failed to create texture for image" << filename << img.size() << QString("%1 frames").arg(shape->GetFramesCount());
+                    return false;
+                }
             }
-            
-            _texture = _atlas->create(img.mirrored()); 
-            _image = f.fileName();
-            if (_texture == 0)
-                qWarning() << "Failed to create texture for image" << _image << img.size() << QString("%1 frames").arg(_frames);
         }
     }
-
     return true;
 }
 
@@ -252,11 +349,11 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
     if (sprite && sprite->GetFramesCount() > 1)
     {
         const int anim_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
-        const int anim_cell = sqrtf(anim_size);
+        const int anim_square = sqrtf(anim_size);
         const int anim_frame = roundf(frame);
-        const int gr = anim_frame / anim_cell, gc = anim_frame % anim_cell;
-        const float cw = rc.width()/anim_cell, ch = rc.height()/anim_cell;
-        rc = QRectF(rc.x()+gc*cw, 1 - (rc.y()+gr*ch-ch), cw, ch);
+        const int gr = anim_frame / anim_square, gc = anim_frame % anim_square;
+        const float cw = rc.width()/anim_square, ch = rc.height()/anim_square;
+        rc = QRectF(rc.x()+gc*cw, rc.y()+gr*ch-ch, cw, ch);
     }
     
     //uvs[index + 0] = {0, 0};
@@ -350,7 +447,8 @@ void QtParticleManager::Flush()
         Q_FOREACH(QGeometryData gd, opt) {
             gd.draw(_p, 0, gd.indexCount());
         }
-        if(_lastTexture) _lastTexture->release();
+        if(_lastTexture)
+            _lastTexture->release();
         batch = QGeometryData(); // clear batch data
     }
 }

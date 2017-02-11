@@ -114,7 +114,7 @@ bool QAreaAllocatorNode::isLeaf()
 }
 
 
-QAreaAllocator::QAreaAllocator(const QSize &size) : m_size(size)
+QAreaAllocator::QAreaAllocator(const QSize &size, const QSize &padding) : m_size(size), m_padding(padding)
 {
     m_root = new QAreaAllocatorNode(0);
 }
@@ -127,8 +127,8 @@ QAreaAllocator::~QAreaAllocator()
 QRect QAreaAllocator::allocate(const QSize &size)
 {
     QPoint point;
-    bool result = allocateInNode(size, point, QRect(QPoint(0, 0), m_size), m_root);
-    return result ? QRect(point, size) : QRect();
+    bool result = allocateInNode(size+m_padding, point, QRect(QPoint(0, 0), m_size), m_root);
+    return result ? QRect(point, size+m_padding) : QRect();
 }
 
 bool QAreaAllocator::deallocate(const QRect &rect)
@@ -311,10 +311,12 @@ void QAreaAllocator::mergeNodeWithNeighbors(QAreaAllocatorNode *node)
 } // namespace QGL
 
 
-QAtlasManager::QAtlasManager(QSize defaultAtlasSize)
+constexpr QSize QAtlasManager::padding;
+
+QAtlasManager::QAtlasManager(QSize defAtlasSize)
     : m_atlas(0)
 {
-    ensureTextureAtlasSize(defaultAtlasSize);
+    ensureTextureAtlasSize(defAtlasSize);
 }
 
 
@@ -352,22 +354,20 @@ void QAtlasManager::invalidate(QSize reqAtlasSize)
 
 QTexture *QAtlasManager::create(const QImage &image)
 {
-    QTexture *t = 0;
-    if (image.width() < m_atlas_size_limit && image.height() < m_atlas_size_limit) {
-        if (!m_atlas)
-            m_atlas = new QTextureAtlas(m_atlas_size);
-        // t may be null for atlas allocation failure
-        t = m_atlas->create(image);
-    }
-    return t;
+    if (image.width() > m_atlas_size_limit || image.height() > m_atlas_size_limit)
+        return 0;
+    if (!m_atlas)
+        m_atlas = new QTextureAtlas(m_atlas_size);
+    // texture may be null for atlas allocation failure
+    return m_atlas->create(image);
 }
 
 GLuint QAtlasManager::atlasTextureId() const { return m_atlas->textureId(); }
 
-QSize QAtlasManager::atlasTextureSize() const { return m_atlas->size(); }
+QSize QAtlasManager::atlasTextureSize() const { return m_atlas_size; }
 
 QTextureAtlas::QTextureAtlas(const QSize &size)
-    : m_allocator(size)
+    : m_allocator(size, QAtlasManager::padding)
     , m_texture_id(0)
     , m_size(size)
     , m_atlas_transient_image_threshold(0)
@@ -442,7 +442,7 @@ void QTextureAtlas::invalidate()
 QTexture *QTextureAtlas::create(const QImage &image)
 {
     // No need to lock, as manager already locked it.
-    QRect rect = m_allocator.allocate(QSize(image.width() + 2, image.height() + 2));
+    QRect rect = m_allocator.allocate(QSize(image.width(), image.height()));
     if (rect.width() > 0 && rect.height() > 0) {
         QTexture *t = new QTexture(this, rect, image);
         m_pending_uploads << t;
