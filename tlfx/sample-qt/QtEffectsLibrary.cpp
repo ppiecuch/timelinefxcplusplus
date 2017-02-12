@@ -242,7 +242,7 @@ bool QtEffectsLibrary::UploadTextures()
                         }
 
                         // scale images to fit atlas
-                        QTexture *texture = _atlas->create(img.scaled(QSize(w,h)).mirrored());
+                        QTexture *texture = _atlas->create(img.scaled(QSize(w,h)));
                         dynamic_cast<QtImage*>(shape)->SetTexture(texture, filename);
                         if (texture == 0) {
                             qWarning() << "[QtEffectsLibrary] Failed to create texture for image" << filename << img.size() << QString("%1 frames").arg(shape->GetFramesCount());
@@ -301,7 +301,7 @@ bool QtEffectsLibrary::UploadTextures()
                 }
 
                 // scale images to fit atlas
-                QTexture *texture = _atlas->create(img.scaled(QSize(w,h)).mirrored());
+                QTexture *texture = _atlas->create(img.scaled(QSize(w,h)));
                 dynamic_cast<QtImage*>(shape)->SetTexture(texture, filename);
                 if (texture == 0) {
                     qWarning() << "[QtImage] Failed to create texture for image" << filename << img.size() << QString("%1 frames").arg(shape->GetFramesCount());
@@ -311,6 +311,53 @@ bool QtEffectsLibrary::UploadTextures()
         }
     }
     return true;
+}
+
+void QtEffectsLibrary::Debug(QGLPainter *p)
+{
+    Q_FOREACH(TLFX::AnimImage *sprite, _shapeList)
+    {
+        if (sprite->GetFramesCount() != 64) continue;
+        
+        // draw texture quad:
+        
+        glDisable( GL_DEPTH );
+        glEnable( GL_BLEND );
+        glDisable( GL_ALPHA_TEST );
+        glEnable( GL_TEXTURE_2D );
+        dynamic_cast<QtImage*>(sprite)->GetTexture()->bind();
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+        static qreal f = 0;
+        
+        QRectF rc = dynamic_cast<QtImage*>(sprite)->GetTexture()->normalizedTextureSubRect();
+        const int anim_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
+        const int anim_square = sqrtf(anim_size);
+        const int anim_frame = int(round(f)) % sprite->GetFramesCount(); f += 0.1;
+        const int gr = anim_frame / anim_square, gc = anim_frame % anim_square;
+        const float cw = rc.width()/anim_square, ch = rc.height()/anim_square;
+        rc = QRectF(rc.x()+gc*cw, rc.y()+gr*ch, cw, ch);
+        
+        QGeometryData batch;
+        batch.appendVertex(QVector3D(0,0,0));
+        batch.appendVertex(QVector3D(sprite->GetWidth(),0,0));
+        batch.appendVertex(QVector3D(sprite->GetWidth(),sprite->GetHeight(),0));
+        batch.appendVertex(QVector3D(0,sprite->GetHeight(),0));
+        batch.appendTexCoord(QVector2D(rc.x(), rc.y()));
+        batch.appendTexCoord(QVector2D(rc.x()+rc.width(), rc.y()));
+        batch.appendTexCoord(QVector2D(rc.x()+rc.width(), rc.y()+rc.height()));
+        batch.appendTexCoord(QVector2D(rc.x(), rc.y()+rc.height()));
+        batch.appendColor(Qt::white);
+        batch.appendColor(Qt::white);
+        batch.appendColor(Qt::white);
+        batch.appendColor(Qt::white);
+        batch.appendIndices(0,1,2);
+        batch.appendIndices(2,3,0);
+        batch.draw(p,0,6,QGL::Triangles);
+        dynamic_cast<QtImage*>(sprite)->GetTexture()->release();
+        
+        return;
+    }
 }
 
 QtParticleManager::QtParticleManager( QGLPainter *p, int particles /*= particleLimit*/, int layers /*= 1*/ )
@@ -350,12 +397,16 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
     {
         const int anim_size = powf(2, ceilf(log2f(sprite->GetFramesCount())));
         const int anim_square = sqrtf(anim_size);
-        const int anim_frame = roundf(frame);
+        const int anim_frame = floorf(frame);
+        if(anim_frame >= sprite->GetFramesCount()) {
+            qWarning() << "[QtParticleManager] Out of range:" << frame << anim_frame << "frames:" << sprite->GetFramesCount();
+        }
         const int gr = anim_frame / anim_square, gc = anim_frame % anim_square;
         const float cw = rc.width()/anim_square, ch = rc.height()/anim_square;
-        rc = QRectF(rc.x()+gc*cw, rc.y()+gr*ch-ch, cw, ch);
+        rc = QRectF(rc.x()+gc*cw, rc.y()+gr*ch, cw, ch);
+        //qDebug() << sprite->GetFilename() << anim_frame << dynamic_cast<QtImage*>(sprite)->GetTexture()->normalizedTextureSubRect() << rc;
     }
-    
+
     //uvs[index + 0] = {0, 0};
     batch.appendTexCoord(QVector2D(rc.x(), rc.y()));
     //uvs[index + 1] = {1.0f, 0}
@@ -409,7 +460,7 @@ void QtParticleManager::DrawSprite( TLFX::Particle *p, TLFX::AnimImage* sprite, 
     {
         batch.appendColor(QColor(r, g, b, alpha));
     }
-    
+
     _lastTexture = dynamic_cast<QtImage*>(sprite)->GetTexture();
     switch(_globalBlend)
     {

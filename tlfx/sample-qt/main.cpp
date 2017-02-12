@@ -176,6 +176,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
         m_pm->DrawParticles();
         m_pm->Flush();
+        //m_effects->Debug(&m_p);
         m_p.disableEffect();
         m_p.end();
 
@@ -607,6 +608,8 @@ static QImage texture_to_image(const QSize &size, GLuint texture)
    glEnable( GL_TEXTURE_2D );
    
    _out_fbo->drawTexture( QPointF(0.0,0.0), texture, GL_TEXTURE_2D );
+#if 0
+#endif
    _out_fbo->release();
    return _out_fbo->toImage();
 }

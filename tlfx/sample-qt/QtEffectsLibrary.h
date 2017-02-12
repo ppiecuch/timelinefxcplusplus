@@ -60,6 +60,8 @@ public:
     bool ensureTextureSize(int &w, int &h);
     bool UploadTextures();
 
+    void Debug(QGLPainter *p);
+
 protected:
     QString _library;
     QAtlasManager *_atlas;
