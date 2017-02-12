@@ -5,6 +5,8 @@ Based on Marmalade loaded with few Qt changes. Should work on every platform how
 Features:
 * Effects loaded from resoures (data.qrc).
 * Open eff files directly.
+* Automated texture atlas generation
+* Displaying options
 
 ***
 
