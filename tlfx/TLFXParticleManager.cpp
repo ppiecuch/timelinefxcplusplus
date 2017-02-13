@@ -179,8 +179,8 @@ namespace TLFX
     void ParticleManager::ReleaseParticle( Particle *p )
     {
         if(p->IsUnused()) {
-#   ifdef DEBUG
-            printf("Double release of particle %p\n", p); 
+#   if defined(DEBUG) || defined(DBEBUG_MEM)
+            TLFXLOG(PARTICLES, ("Double release of particle %p", p));
 #   endif
         } else {
             p->SetUnused(true);
