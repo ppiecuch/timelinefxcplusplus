@@ -147,6 +147,7 @@ namespace TLFX
         {
             p = _unused.top();
             _unused.pop();
+            p->SetUnused(false);
 		}
 		else if(createParticlesAsNeeded)
 		{
@@ -177,12 +178,19 @@ namespace TLFX
 
     void ParticleManager::ReleaseParticle( Particle *p )
     {
-        --_inUseCount;
-        _unused.push(p);
-        if (!p->IsGroupParticles())
-        {
-            auto& plist = _inUse[p->GetEffectLayer()][p->GetLayer()];
-			plist.erase(p->GetIter());
+        if(p->IsUnused()) {
+#   ifdef DEBUG
+            printf("Double release of particle %p\n", p); 
+#   endif
+        } else {
+            p->SetUnused(true);
+            --_inUseCount; assert(_inUseCount>=0);
+            _unused.push(p);
+            if (!p->IsGroupParticles())
+            {
+                auto& plist = _inUse[p->GetEffectLayer()][p->GetLayer()];
+                plist.erase(p->GetIter());
+            }
         }
     }
 
@@ -417,13 +425,44 @@ namespace TLFX
     {
         if (layer >= _effectLayers)
             layer = 0;
-        e->SetEffectLayer(layer);
-        _effects[layer].insert(e);
+        e->SetEffectLayer(layer);       
+        // if the effect is a super effect, then just add the effects in the list
+        if(e->IsSuper())
+        {
+            for (auto it = e->GetEffects().begin(); it != e->GetEffects().end(); ++it)
+            {
+                Effect* se = static_cast<Effect*>(*it);
+                AddEffect(se, layer);
+            }
+        }
+        else
+        {
+            _effects[layer].insert(e);
+        }
     }
 
     void ParticleManager::RemoveEffect( Effect* e )
     {
         _effects[e->GetEffectLayer()].erase(e);
+    }
+
+    void ParticleManager::Destroy()
+    {
+        ClearAll();
+        ClearInUse();
+    }
+
+    void ParticleManager::ClearAll()
+    {
+        int c=0;for (int el = 0; el < _effectLayers; ++el)
+        {
+            for (auto it = _effects[el].begin(); it != _effects[el].end(); ++it)
+            {
+                (*it)->Destroy();
+                delete *it;
+            }
+            _effects[el].clear();
+        }
     }
 
     void ParticleManager::ClearInUse()
@@ -443,25 +482,6 @@ namespace TLFX
                 }
                 plist.clear();
             }
-        }
-    }
-
-    void ParticleManager::Destroy()
-    {
-        ClearAll();
-        ClearInUse();
-    }
-
-    void ParticleManager::ClearAll()
-    {
-        for (int el = 0; el < _effectLayers; ++el)
-        {
-            for (auto it = _effects[el].begin(); it != _effects[el].end(); ++it)
-            {
-                (*it)->Destroy();
-                delete *it;
-            }
-            _effects[el].clear();
         }
     }
 

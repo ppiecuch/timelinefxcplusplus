@@ -128,7 +128,6 @@ private:
     
     QtEffectsLibrary *m_effects;
     QtParticleManager *m_pm;
-    TLFX::Effect *m_disp_effect;
     quint32 m_curr_effect; // currently selected effect
     quint32 m_curr_bg; // current background style
     qint32 m_msg_line; // line with blending message
@@ -150,7 +149,7 @@ public:
 		, m_device(0)
         , m_fbo(0), m_surf(0)
         , m_curr_library(library)
-        , m_effects(0), m_pm(0), m_disp_effect(0), m_curr_effect(0), m_curr_bg(0)
+        , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
 	}
@@ -262,10 +261,10 @@ public:
         if (m_effects->AllEffects().size())
         {
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            m_disp_effect = new TLFX::Effect(*eff, m_pm);
-            m_disp_effect->SetPosition(0, 0);
+            TLFX::Effect *cpy  = new TLFX::Effect(*eff, m_pm);
+            cpy->SetPosition(0, 0);
 
-            m_pm->AddEffect(m_disp_effect);
+            m_pm->AddEffect(cpy);
         } else
             qWarning() << "No effects found in the library";
 
@@ -337,10 +336,10 @@ public:
             // reload library
             loadCurrLibrary();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            m_disp_effect = new TLFX::Effect(*eff, m_pm);
-            m_disp_effect->SetPosition(0, 0);
+            TLFX::Effect *cpy = new TLFX::Effect(*eff, m_pm);
+            cpy->SetPosition(0, 0);
             m_pm->Reset();
-            m_pm->AddEffect(m_disp_effect);
+            m_pm->AddEffect(cpy);
             guard.unlock();
         } break;
 		case Qt::Key_B: 
@@ -371,11 +370,11 @@ public:
                     if (m_effects->AllEffects().size())
                     {
                         TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-                        m_disp_effect = new TLFX::Effect(*eff, m_pm);
-                        m_disp_effect->SetPosition(0, 0);
+                        TLFX::Effect *cpy = new TLFX::Effect(*eff, m_pm);
+                        cpy->SetPosition(0, 0);
                         
                         m_pm->Reset();
-                        m_pm->AddEffect(m_disp_effect);
+                        m_pm->AddEffect(cpy);
                     } else
                         qWarning() << "No effects found in the library";
                 } else
@@ -386,37 +385,35 @@ public:
         } break;
 		case Qt::Key_R: {
             guard.lock();
-            m_pm->Reset();
-
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            TLFX::Effect *copy = new TLFX::Effect(*eff, m_pm);
-
-            m_pm->AddEffect(copy);
+            TLFX::Effect *cpy = new TLFX::Effect(*eff, m_pm);
+            m_pm->Reset();
+            m_pm->AddEffect(cpy);
             guard.unlock();
         } break;
         case Qt::Key_Greater: 
         case Qt::Key_Period: {
+            guard.lock();
             ++m_curr_effect;
             if (m_curr_effect == m_effects->AllEffects()[m_curr_effect].size()) 
                 m_curr_effect = 0;
-            guard.lock();
-            m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            m_disp_effect = new TLFX::Effect(*eff, m_pm);
-            m_pm->AddEffect(m_disp_effect);
+            TLFX::Effect *cpy = new TLFX::Effect(*eff, m_pm);
+            m_pm->Reset();
+            m_pm->AddEffect(cpy);
             guard.unlock();
         } break;
         case Qt::Key_Less: 
         case Qt::Key_Comma: {
+            guard.lock();
             if (m_curr_effect == 0) 
                 m_curr_effect = m_effects->AllEffects()[m_curr_effect].size() - 1;
             else 
                 --m_curr_effect;
-            guard.lock();
-            m_pm->Reset();
             TLFX::Effect *eff = m_effects->GetEffect(m_effects->AllEffects()[m_curr_effect].c_str());
-            m_disp_effect = new TLFX::Effect(*eff, m_pm);
-            m_pm->AddEffect(m_disp_effect);
+            TLFX::Effect *cpy = new TLFX::Effect(*eff, m_pm);
+            m_pm->Reset();
+            m_pm->AddEffect(cpy);
             guard.unlock();
         } break;
 		default: event->ignore();

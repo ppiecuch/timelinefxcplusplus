@@ -110,6 +110,9 @@ bool EffectsLibrary::Load( const char *filename, bool compile /*= true*/ )
         }
         delete shape; // last even shape is safe to delete
 
+        // try to locate an effect in xml doc
+        loader->LocateEffect();
+ 
         Effect *effect;
         while ((effect = loader->GetNextEffect(_shapeList)))
         {
@@ -121,6 +124,19 @@ bool EffectsLibrary::Load( const char *filename, bool compile /*= true*/ )
             // ??? effect->AddEffect(effect);
         }
 
+
+        // try to locate a super effect in xml doc
+        loader->LocateSuperEffect();
+ 
+        Effect *superEffect;
+        while ((superEffect = loader->GetNextSuperEffect(_shapeList)))
+        {
+            if (compile)
+                superEffect->CompileAll();
+ 
+                AddSuperEffect(superEffect);
+        }
+
         _name = filename;
     }
 
@@ -129,7 +145,29 @@ end:
     return loaded;
 }
 
-void EffectsLibrary::AddEffect( Effect *e )
+void EffectsLibrary::AddSuperEffect(Effect *effect)
+{
+    std::string name = effect->GetPath();
+
+    auto old = _effects.find(name);
+    if (old != _effects.end())
+    {
+        delete old->second;
+        // no need to erase, we are assigning new one immediately
+    }
+
+    _effects[name] = effect;
+
+    /* 
+    auto effects = e->GetEffects();
+    for (auto it = effects.begin(); it != effects.end(); ++it)
+    {
+        AddEffect(static_cast<Effect*>(*it));
+    }
+    */ 
+}
+ 
+ void EffectsLibrary::AddEffect( Effect *e )
 {
     std::string name = e->GetPath();
 

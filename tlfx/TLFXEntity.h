@@ -620,6 +620,9 @@ namespace TLFX
         void SetBaseWeight(float weight);
         float GetBaseWeight() const;
 
+        const void SetUnused(bool value) { _unused = value; }
+        bool IsUnused() const { return _unused; }
+        
         static float Rnd(float range);
         static float Rnd(float min, float max);
 
@@ -709,6 +712,7 @@ namespace TLFX
         float                           _entityRadius;              // This is the radius that encompasses the whole entity, including children
         float                           _imageDiameter;
         // ownership
+        bool                            _unused;
         Entity*                         _parent;                    // parent of the entity, for example bullet fired by the entity
         Entity*                         _rootParent;                // The root parent of the entity
         // children
