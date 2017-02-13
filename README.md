@@ -21,9 +21,10 @@ qmake -o Makefile sample-qt.pro
 ***
 
 Example of preview window:
-![Alt text](/tlfx/sample-qt/screens/screen1.png?raw=true "Effect 1")
-![Alt text](/tlfx/sample-qt/screens/screen2.png?raw=true "Effect 2")
-![Alt text](/tlfx/sample-qt/screens/screen3.png?raw=true "Effect 3")
-![Alt text](/tlfx/sample-qt/screens/screen4.jpg?raw=true "Effect 4")
+![Alt text](/tlfx/sample-qt/screens/screen6.jpg?raw=true "Effect 1")
+![Alt text](/tlfx/sample-qt/screens/screen1.png?raw=true "Effect 2")
+![Alt text](/tlfx/sample-qt/screens/screen2.png?raw=true "Effect 3")
+![Alt text](/tlfx/sample-qt/screens/screen3.png?raw=true "Effect 4")
+![Alt text](/tlfx/sample-qt/screens/screen4.jpg?raw=true "Effect 5")
 ![Alt text](/tlfx/sample-qt/screens/screen5.jpg?raw=true "Texture atlas viewer")
 ![Alt text](/tlfx/sample-qt/screens/atlas.png?raw=true "Texture atlas example")
