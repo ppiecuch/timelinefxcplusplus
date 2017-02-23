@@ -19,12 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef GLUTIL_H
-#define GLUTIL_H
+#ifndef _GLUTIL_H_
+#define _GLUTIL_H_
 
-
-#include "GLHeaders.h"
-#include "FrameworkDefines.h"
+#include <qopengl.h>
+#include <math.h>
 
 extern GLuint nullRGBA;
 extern GLuint blackRGBA;
@@ -34,7 +33,6 @@ extern GLuint redRGBA;
 extern GLuint greenRGBA;
 extern GLuint yellowRGBA;
 
-BEGIN_EXTERN_C
 void draw_quad_short(short x0, short y0, short x1, short y1, short x2, short y2, short x3, short y3);
 void draw_quad_float(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3);
 void draw_textured_quad_short(
@@ -77,9 +75,6 @@ GLfloat *get_stipple_tex_coords(GLfloat *vertices, int numVertices, int stride, 
 void draw_stippled_segment_short(short x0, short y0, short x1, short y1, float scaleFactor);
 void draw_stippled_segment_float(float x0, float y0, float x1, float y1, float scaleFactor);
 
-END_EXTERN_C
-
-#ifdef __cplusplus
 template <typename V> GLfloat *get_stipple_tex_coords(V *vertices, int numVertices, float stippleScale, stipple_clamp_t clamp, GLfloat *texCoords)
 {
     float length = 0;
@@ -127,6 +122,5 @@ static inline GLfloat *get_stipple_tex_coords(const GLfloat *vertices, int numVe
     }
     return texCoords;
 }
-#endif
 
-#endif
+#endif // _GLUTIL_H_

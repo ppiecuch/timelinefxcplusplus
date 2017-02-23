@@ -25,6 +25,7 @@ SOURCES += \
     ../../ext/debug_font.cpp \
     ../../ext/vogl_miniz.cpp \
     ../../ext/vogl_miniz_zip.cpp \
+    ../../ext/gl_util.cpp \
     ../TLFXAnimImage.cpp \
     ../TLFXAttributeNode.cpp \
     ../TLFXEffect.cpp \
@@ -48,6 +49,7 @@ HEADERS += \
     ../../ext/qopenglerrorcheck.h \
     ../../ext/vogl_miniz.h \
     ../../ext/vogl_miniz_zip.h \
+    ../../ext/gl_util.h \
     ../TLFXAnimImage.h \
     ../TLFXAttributeNode.h \
     ../TLFXEffect.h \
