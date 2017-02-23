@@ -26,6 +26,7 @@ SOURCES += \
     $$PWD/qgltexture2d.cpp \
     $$PWD/qatlastexture.cpp \
     $$PWD/qglview.cpp \
+    $$PWD/qtriangulator.cpp \
     $$PWD/qdownloadmanager.cpp
 
 
@@ -62,4 +63,5 @@ HEADERS += \
     $$PWD/qgltexture2d_p.h \
     $$PWD/qatlastexture.h \
     $$PWD/qglview.h \
+    $$PWD/qtriangulator.h \
     $$PWD/qdownloadmanager.h

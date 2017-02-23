@@ -45,11 +45,15 @@
 #include "qglpainter.h"
 #include "qlogicalvertex.h"
 #include "qgeometrydata.h"
+#include "qtriangulator.h"
 #include "qvector_utils_p.h"
 
-#include <QtGui/qvector2d.h>
+#include <QDebug>
+#include <QVector2d>
+#include <QPainterPath>
 
-#include <QtCore/qdebug.h>
+#include <QtGui/private/qtriangulatingstroker_p.h>
+#include <QtGui/private/qbezier_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -1609,5 +1613,509 @@ QDebug operator<<(QDebug dbg, const QGLSection &section)
     return dbg.space();
 }
 #endif
+
+
+
+/*!
+    \class QQuadPlane
+    \brief The QQuadPlane class holds a 3D model of a large flat plane.
+    When drawing a large flat plane, such as a wall or a floor, it is desirable
+    to decompose it into smaller units to make the shading effects look correct.
+    This class composes a plane out of a configurable number of quads.
+*/
+
+/*!
+    Construct a new QuadPlane with \a size, subdivided \a level times.  By default
+    the plane is 100.0f x 100.0f, and is subdivided 3 times - that is into an
+    8 x 8 grid.
+
+    It is centered on the origin, and lies in the z = 0 plane.
+*/
+QGeometryData qQuadPlane(QSizeF size, int level)
+{
+    if (level > 8)
+        level = 8;
+    if (level < 1)
+        level = 1;
+    int divisions = 1;
+    for ( ; level--; divisions *= 2) {}  // integer 2**n
+    QSizeF div = size / float(divisions);
+    QSizeF half = size / 2.0f;
+    QGLBuilder builder;
+    QGeometryData zip, zip2;
+    for (int yy = 0; yy <= divisions; ++yy)
+    {
+        float y = half.height() - float(yy) * div.height();
+        float texY = float(yy) / divisions;
+        for (int xx = 0; xx <= divisions; ++xx)
+        {
+            float x = half.width() - float(xx) * div.width();
+            float texX = float(xx) / divisions;
+            zip.appendVertex(QVector3D(x, y, 0));
+            zip.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY));
+        }
+        if (yy > 0)
+            builder.addQuadsInterleaved(zip, zip2);
+        zip2 = zip;
+        zip2.detach();
+        zip.clear();
+    }
+    return builder.optimized().at(0);
+}
+
+
+void extrudeCaps(QGeometryData &data,QTriangleSet &set,bool invFace,qreal offset)
+{
+	int facecount = set.vertices.count()>>1;
+	const qreal * vert = set.vertices.data();
+
+	qreal normal=1;
+	if (invFace) {
+		normal=-1;
+	}
+
+	int startindex=data.count();
+	data.appendVertexArray(QVector3DArray(facecount));
+	data.appendNormalArray(QVector3DArray(facecount));
+	for (int i=0;i<facecount;i++) {
+		data.vertex(startindex+i)=QVector3D(vert[0],vert[1],offset);
+		data.normal(startindex+i)=QVector3D(0,0,normal);
+		vert++;
+		vert++;
+	}
+	int *ind=(int *)set.indices.data();
+
+	if (invFace) {
+		for (int i=0;i<set.indices.size();i++) {
+			data.appendIndex(ind[i]+startindex);
+		}
+	} else {
+		for (int i=set.indices.size()-1;i>-1;i--) {
+			data.appendIndex(ind[i]+startindex);
+		}
+	}
+}
+
+void extrudeFacture(QGeometryData &data,QPolylineSet &set,qreal extrude)
+{
+	int linecount = set.vertices.count()>>1;
+	const qreal * vert = set.vertices.data();
+
+	int indexstart=data.count();
+	data.appendVertexArray(QVector3DArray(linecount*2));
+	data.appendNormalArray(QVector3DArray(linecount*2));
+
+	for (int i=0;i<linecount;i++) {
+		data.vertex(indexstart+i)=QVector3D(vert[0],vert[1],-extrude*0.5);
+		data.normal(indexstart+i)=QVector3D(0,0,0);
+		vert++;
+		vert++;
+	}
+	vert=set.vertices.data();
+	for (int i=0;i<linecount;i++) {
+		data.vertex(indexstart+linecount+i)=QVector3D(vert[0],vert[1],extrude*0.5);
+		data.normal(indexstart+linecount+i)=QVector3D(0,0,0);
+		vert++;
+		vert++;
+	}
+
+	int *ind=(int *)set.indices.data();
+	vert=set.vertices.data();
+	QVector3D nn;
+	int addindex=data.count();
+
+	for (int i=0;i<set.indices.size()-1;i++) {
+		if ((ind[i]<0) || (ind[i+1]<0)) continue;
+		int id1=ind[i]+indexstart;
+		int id10=ind[i+1]+indexstart;
+		int id2=ind[i]+indexstart+linecount;
+		int id20=ind[i+1]+indexstart+linecount;
+		nn=QVector3D(vert[ind[i+1]*2+1]-vert[ind[i]*2+1],vert[ind[i]*2]-vert[ind[i+1]*2],0);
+		nn.normalize();
+		if (!data.normal(id1).isNull()) {
+			if (QVector3D::dotProduct(data.normal(id1),nn)<0.5) {
+				QVector3D vec=data.vertexAt(id1);
+				data.appendVertex(vec);
+				data.appendNormal(QVector3D(0,0,0));
+				id1=addindex;
+				addindex++;
+				vec=data.vertexAt(id2);
+				data.appendVertex(vec);
+				data.appendNormal(QVector3D(0,0,0));
+				id2=addindex;
+				addindex++;
+			}
+		}
+		QVector3D &nm1=data.normal(id1);
+		QVector3D &nm10=data.normal(id10);
+		data.appendIndices(id1,id10,id2);
+		data.appendIndices(id10,id20,id2);
+		if (!nm1.isNull()) nm1=(nn+nm1)*0.5; else nm1=nn;
+		data.normal(id2)=nm1;
+		if (!nm10.isNull()) nm10=(nn+nm10)*0.5; else nm10=nn;
+		data.normal(id20)=nm10;
+	}
+}
+
+QGeometryData qExtrude(const qreal *polygon, int count, qreal extrude, Qt::ExtrudeFlags flag, uint hint, const QTransform &matrix)
+{
+	QGeometryData data;
+
+	QTriangleSet face = qTriangulate(polygon,count,hint,matrix);
+	qreal extr=extrude;
+	if (extr<=0) extr=0;
+
+	int fasecount=face.vertices.count()>>1;
+	const qreal * vert;
+	if ((flag & Qt::CapStart)!=0) {
+		extrudeCaps(data,face,false,extr*0.5);
+	}
+
+	if ((flag & Qt::CapEnd)!=0) {
+		extrudeCaps(data,face,true,-extr*0.5);
+	}
+
+	if (extr>0) {
+		QPolylineSet line = qPolyline(polygon,count,hint,matrix);
+		extrudeFacture(data,line,extr);
+	}
+
+	return data;
+}
+
+QGeometryData qExtrude(const QVectorPath &path, qreal extrude, Qt::ExtrudeFlags flag, const QTransform &matrix, qreal lod)
+{
+	QGeometryData data;
+
+	QTriangleSet face = qTriangulate(path,matrix,lod);
+	qreal extr=extrude;
+	if (extr<=0) extr=0;
+
+	int fasecount=face.vertices.count()>>1;
+	const qreal * vert;
+	if ((flag & Qt::CapStart)!=0) {
+		extrudeCaps(data,face,false,extr*0.5);
+	}
+
+	if ((flag & Qt::CapEnd)!=0) {
+		extrudeCaps(data,face,true,-extr*0.5);
+	}
+
+	int *ind;
+	if (extr>0) {
+		QPolylineSet line = qPolyline(path,matrix,lod);
+		extrudeFacture(data,line,extr);
+	}
+
+	return data;
+}
+
+QGeometryData qExtrude(const QPainterPath &path, qreal extrude, Qt::ExtrudeFlags flag, const QTransform &matrix, qreal lod)
+{
+	QGeometryData data;
+
+	QTriangleSet face = qTriangulate(path,matrix,lod);
+	qreal extr=extrude;
+	if (extr<=0) extr=0;
+
+	int fasecount=face.vertices.count()>>1;
+	const qreal * vert;
+	if ((flag & Qt::CapStart)!=0) {
+		extrudeCaps(data,face,false,extr*0.5);
+	}
+
+	if ((flag & Qt::CapEnd)!=0) {
+		extrudeCaps(data,face,true,-extr*0.5);
+	}
+
+	int *ind;
+	if (extr>0) {
+		QPolylineSet line = qPolyline(path,matrix,lod);
+		extrudeFacture(data,line,extr);
+	}
+
+	return data;
+}
+
+QGeometryData qExtrude(const QGeometryData &path, qreal extrude, Qt::ExtrudeFlags flag, uint hint, const QTransform &matrix)
+{
+	QGeometryData data;
+
+	QTriangleSet face = qTriangulate(path,hint,matrix);
+	qreal extr=extrude;
+	if (extr<=0) extr=0;
+
+	int fasecount=face.vertices.count()>>1;
+	const qreal * vert;
+	if ((flag & Qt::CapStart)!=0) {
+		extrudeCaps(data,face,false,extr*0.5);
+	}
+
+	if ((flag & Qt::CapEnd)!=0) {
+		extrudeCaps(data,face,true,-extr*0.5);
+	}
+
+	int *ind;
+	if (extr>0) {
+		QPolylineSet line = qPolyline(path,hint,matrix);
+		extrudeFacture(data,line,extr);
+	}
+
+	return data;
+}
+
+
+
+
+QGeometryData qtGeometryDataForPainterPath(const QPainterPath &_value, qreal lod)
+{
+	const QVectorPath &path=qtVectorPathForPath(_value);
+	return qtGeometryDataForVectorPath(path,lod);
+}
+
+QGeometryData qtGeometryDataForVectorPath(const QVectorPath &_path, qreal lod)
+{
+	QGeometryData data;
+
+	uint hint = _path.hints();
+	// Curved paths will be converted to complex polygons.
+	hint &= ~QVectorPath::CurvedShapeMask;
+	bool neednew=true;
+
+	const qreal *p = _path.points();
+	const QPainterPath::ElementType *e = _path.elements();
+	if (e) {
+		for (int i = 0; i < _path.elementCount(); ++i, ++e, p += 2) {
+			switch (*e) {
+case QPainterPath::MoveToElement:
+	neednew=false;
+	data.appendVertex(QVector3D(p[0],p[1],0));
+	break;
+case QPainterPath::LineToElement:
+	if (!neednew) {
+		data.appendIndex(data.count()-1);
+		data.appendIndex(data.count());
+	}
+	data.appendVertex(QVector3D(p[0],p[1],0));
+	break;
+case QPainterPath::CurveToElement:
+	{
+		qreal pts[8];
+		for (int j = 0; j < 4; ++j) {
+			pts[2 * j + 0]=p[2 * j - 2];
+			pts[2 * j + 1]=p[2 * j - 1];
+		}
+		for (int j = 0; j < 8; ++j)
+			pts[j] *= lod;
+		QBezier bezier = QBezier::fromPoints(QPointF(pts[0], pts[1]), QPointF(pts[2], pts[3]), QPointF(pts[4], pts[5]), QPointF(pts[6], pts[7]));
+		QPolygonF poly = bezier.toPolygon();
+		// Skip first point, it already exists in 'm_vertices'.
+		for (int j = 1; j < poly.size(); ++j) {
+			if (!neednew) {
+				data.appendIndex(data.count()-1);
+				data.appendIndex(data.count());
+			}
+			data.appendVertex(QVector3D(poly.at(j).x(),poly.at(j).y(),0));
+		}
+	}
+	i += 2;
+	e += 2;
+	p += 4;
+	break;
+default:
+	Q_ASSERT_X(0, "qtGeometryForVectorPath::QVectorPath", "Unexpected element type.");
+	break;
+			}
+		}
+	} else {
+		for (int j = 0; j < _path.elementCount(); ++j, p += 2) {
+			if (j>0) {
+				data.appendIndex(data.count()-1);
+				data.appendIndex(data.count());
+			}
+			data.appendVertex(QVector3D(p[0],p[1],0));
+		}
+	}
+
+//	QTriangleSet face = qTriangulate(_path);
+
+	return data;
+}
+
+
+
+QGLText::QGLText()
+: m_text()
+, m_font()
+, m_extrude(1.0)
+, m_stroke(1.0)
+, m_strokeExtrude(0)
+, m_caps(QGLText::CapAll)
+, m_align(Qt::AlignLeft | Qt::AlignBottom)
+{
+	m_font.setStyleStrategy(QFont::OpenGLCompatible);
+}
+
+QGLText::QGLText(QString _text,QFont _font)
+: m_extrude(1.0)
+, m_stroke(1.0)
+, m_strokeExtrude(0)
+, m_caps(QGLText::CapAll)
+, m_align(Qt::AlignLeft | Qt::AlignBottom)
+{
+	m_text=_text;
+	m_font=_font;
+	m_font.setStyleStrategy(QFont::OpenGLCompatible);
+}
+
+QFont QGLText::font() const
+{
+	return m_font;
+}
+
+void QGLText::setFont(QFont _font)
+{
+	m_font=_font;
+	m_font.setStyleStrategy(QFont::OpenGLCompatible);
+}
+
+QString QGLText::text() const
+{
+	return m_text;
+}
+
+void QGLText::setText(QString _text)
+{
+	m_text=_text;
+}
+
+qreal QGLText::extrude() const
+{
+	return m_extrude;
+}
+
+void QGLText::setExtrude(qreal _val)
+{
+	m_extrude=_val;
+}
+
+qreal QGLText::stroke() const
+{
+	return m_stroke;
+}
+
+void QGLText::setStroke(qreal _val)
+{
+	m_stroke=_val;
+}
+
+qreal QGLText::strokeExtrude() const
+{
+	return m_strokeExtrude;
+}
+
+void QGLText::setStrokeExtrude(qreal _val)
+{
+	m_strokeExtrude=_val;
+}
+
+QGLText::textCaps QGLText::caps() const
+{
+	return m_caps;
+}
+
+void QGLText::setCaps(QGLText::textCaps _val)
+{
+	m_caps=_val;
+}
+
+Qt::Alignment QGLText::Align() const
+{
+	return m_align;
+}
+
+void QGLText::setAlign(Qt::Alignment _val)
+{
+	m_align=_val;
+}
+
+QGeometryData QGLText::buildText() const
+{
+	QGeometryData data;
+	if ((m_font.styleStrategy() & QFont::OpenGLCompatible)==0) return data;
+
+	QFontMetrics metr(m_font);
+	qreal xpos=metr.width(m_text);
+	qreal ypos=metr.height();
+
+	QPainterPath pathText;
+
+	switch (m_align & 0xF)
+	{
+	case Qt::AlignRight: xpos=-xpos; break;
+	case Qt::AlignLeft: xpos=0; break;
+	case Qt::AlignHCenter:  xpos=-(xpos*0.5); break;
+	default: xpos=0;
+	}
+	switch (m_align & 0xF0)
+	{
+	case Qt::AlignTop: ypos=-ypos; break;
+	case Qt::AlignBottom: ypos=0; break;
+	case Qt::AlignVCenter: ypos=-(ypos*0.5); break;
+	default: ypos=0;
+	}
+
+	pathText.addText(xpos,ypos,m_font,m_text);
+	QMatrix4x4 matr;
+	matr.rotate(180,QVector3D(1,0,0));
+
+	if (pathText.elementCount()>0) {
+		if ((m_caps & CapLine)==0) {
+			data=qExtrude(pathText,m_extrude,(Qt::ExtrudeFlags)m_caps);
+		} else {
+			data=qtGeometryDataForPainterPath(pathText);
+		}
+	}
+	for (int i=0;i<data.vertices().count();i++) {
+		data.vertex(i) = matr.map(data.vertexAt(i));
+	}
+
+	for (int i=0;i<data.normals().count();i++) {
+		data.normal(i) = matr.map(data.normalAt(i));
+	}
+
+	/**
+    QTriangulatingStroker stroker;
+	stroker.process(qtVectorPathForPath(pathText),QPen(Qt::SolidPattern,0.1,Qt::NoPen),QRectF());
+	const float * vert=stroker.vertices();
+	for (int i=0;i<(stroker.vertexCount()>>1);i++) {
+		data.appendVertex(QVector3D(vert[0],vert[1],0));
+		vert++;
+		vert++;
+	}
+
+	QVector3DArray nm(data.count());
+
+	for (int i=0;i<nm.count();i++) {
+		nm[0]=QVector3D(0,1,0);
+	}
+
+	data.appendNormalArray(nm);
+
+	for (int i=0;i<((stroker.vertexCount()>>2)-1);i++) {
+			data.appendIndices(i,i+1,i+2);
+			data.appendIndices(i+3,i+1,i+2);
+	}
+	**/
+
+	return data;
+}
+
+QGLBuilder& operator<<(QGLBuilder& _builder, const QGLText& _text)
+{
+	QGeometryData data=_text.buildText();
+    _builder.addTriangles(data);
+	return _builder;
+}
 
 QT_END_NAMESPACE

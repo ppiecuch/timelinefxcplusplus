@@ -63,6 +63,80 @@
 
 QT_BEGIN_NAMESPACE
 
+
+qreal qFitToView(const QSize &view, const QBox3D &box, QGLCamera *camera, QGLCameraAnimation *camAnimation)
+{
+    QVector3D origin = camera->center();
+    QVector3D eye = camera->eye();
+    QVector3D up = camera->upVector();
+    QVector3D viewVec = eye - origin;
+    qreal zoomMag = qAbs(viewVec.length());
+
+    QRect rect(0, 0, view.width(), view.height());
+
+    // centering model:
+    origin = box.center();
+    zoomMag = qViewSizeFactor(camera, box, rect);
+    viewVec = eye - origin;
+    qDebug() << "viewVec:" << viewVec << "-- eye:" << eye << "origin:" << origin;
+    eye = origin + (viewVec.normalized() * zoomMag);
+    qDebug() << "   result eye:" << eye;
+
+    // Perform a short animation from the current camera position
+    // to the new position.
+    if (camAnimation)
+    {
+        camAnimation->stop();
+        camAnimation->setStartEye(camera->eye());
+        camAnimation->setStartUpVector(camera->upVector());
+        camAnimation->setStartCenter(camera->center());
+        camAnimation->setEndEye(eye);
+        camAnimation->setEndUpVector(up);
+        camAnimation->setEndCenter(origin);
+        camAnimation->setDuration(500);
+        camAnimation->setEasingCurve(QEasingCurve::OutQuad);
+        camAnimation->start();
+    }
+    return zoomMag;
+}
+
+qreal qViewSizeFactor(const QGLCamera *cam, const QBox3D &box, const QRect &viewRect)
+{
+    QVector3D sz = box.size();
+
+    qDebug() << "scene bounds:" << box << "size:" << sz;
+
+    qreal nearDist = cam->nearPlane();
+
+    qDebug() << "near plane:" << nearDist;
+
+    QSizeF v = cam->viewSize();
+
+    qreal vh = viewRect.height();
+    qreal vw = viewRect.width();
+    if (!qFuzzyIsNull(vw - vh))
+    {
+        qreal asp = vh / vw;
+        if (vh > vw)
+            v.setHeight(v.height() * asp);
+        else
+            v.setWidth(v.width() / asp);
+    }
+
+    qDebug() << "viewRect:" << viewRect << "viewSize:" << cam->viewSize()
+                << "adjusted:" << v;
+
+    qreal mx = qMax(sz.x(), (qMax(sz.y(), sz.z())));
+    qreal mn = qMin(v.height(), v.width());
+
+    // fill 70% of the screen - not a tight fit
+    qreal q = (nearDist * mx) / (0.7 * mn);
+
+    qDebug() << "max is:" << mx << "-- min is:" << mn << "q:" << q;
+
+    return q;
+}
+
 /*!
     \class QGLView
     \brief The QGLView class extends QGLWidget with support for 3D viewing.

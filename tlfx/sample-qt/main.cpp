@@ -109,11 +109,11 @@ const int Bg_cnt = 3;
 static struct {
     float color[4];
     QtParticleManager::GlobalBlendModeType blend_mode;
-    bool invert;
+    bool invert, checker;
 } bg[Bg_cnt] = {
-    {{0, 0, 0, 1}, QtParticleManager::FromEffectBlendMode, true},
-    {{0.99, 0.96, 0.89, 1}, QtParticleManager::AlphaBlendMode, false},
-    {{1, 1, 1, 1}, QtParticleManager::AlphaBlendMode, false}
+    {{0, 0, 0, 1}, QtParticleManager::FromEffectBlendMode, true, false},
+    {{0.99, 0.96, 0.89, 1}, QtParticleManager::AlphaBlendMode, false, true},
+    {{1, 1, 1, 1}, QtParticleManager::AlphaBlendMode, false, false}
 };
 
 class Window : public QWindow, protected QOpenGLFunctions

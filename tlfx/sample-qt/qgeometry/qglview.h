@@ -223,6 +223,10 @@ protected:
 };
 #endif // QT_WIDGETS_LIB
 
+
+qreal qViewSizeFactor(const QGLCamera *cam, const QBox3D &box, const QRect &viewRect);
+qreal qFitToView(const QSize &view, QGLCamera *camera, QGLCameraAnimation *camAnimation = NULL);
+
 QT_END_NAMESPACE
 
 #endif

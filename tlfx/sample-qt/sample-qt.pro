@@ -44,6 +44,7 @@ SOURCES += \
 HEADERS += \
     ../../ext/pugixml.hpp \
     ../../ext/debug_font.h \
+    ../../ext/debug_font.txt \
     ../../ext/qopenglerrorcheck.h \
     ../../ext/vogl_miniz.h \
     ../../ext/vogl_miniz_zip.h \

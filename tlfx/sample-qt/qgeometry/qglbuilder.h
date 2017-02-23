@@ -46,9 +46,14 @@
 #include "qglattributevalue.h"
 #include "qgeometrydata.h"
 
+#include <QSizeF>
 #include <QVector>
 #include <QList>
 #include <QVector3D>
+#include <QFont>
+#include <QPainterPath>
+
+#include <QtGui/private/qvectorpath_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -117,6 +122,81 @@ inline void QGLBuilder::addPane(QSizeF size)
 
 QGLBuilder& operator<<(QGLBuilder& builder, const QGL::Smoothing& smoothing);
 QGLBuilder& operator<<(QGLBuilder& builder, const QGeometryData& triangles);
+
+
+// Geometry builders:
+// ------------------
+
+QGeometryData qQuadPlane(QSizeF size = QSizeF(100.0f, 100.0f), int level = 3);
+QGeometryData qCheckerQuadPlane(QSizeF size = QSizeF(100.0f, 100.0f), int level = 3, QColor color1 = Qt::black, QColor color2 = Qt::white);
+
+
+namespace Qt {
+	enum ExtrudeFlags {
+		CapStart = 0x001,
+		CapEnd = 0x002,
+		CapAll = CapStart | CapEnd
+	};
+}
+
+QGeometryData qExtrude(const qreal *polygon, int count, qreal extrude= 1, Qt::ExtrudeFlags flag = Qt::CapAll, uint hint = QVectorPath::PolygonHint | QVectorPath::OddEvenFill, const QTransform &matrix = QTransform());
+QGeometryData qExtrude(const QVectorPath &path, qreal extrude= 1, Qt::ExtrudeFlags flag = Qt::CapAll, const QTransform &matrix = QTransform(), qreal lod = 1);
+QGeometryData qExtrude(const QPainterPath &path, qreal extrude= 1, Qt::ExtrudeFlags flag = Qt::CapAll, const QTransform &matrix = QTransform(), qreal lod = 1);
+QGeometryData qExtrude(const QGeometryData &path, qreal extrude= 1, Qt::ExtrudeFlags flag = Qt::CapAll, uint hint = QVectorPath::PolygonHint | QVectorPath::OddEvenFill, const QTransform &matrix = QTransform());
+
+
+QGeometryData qtGeometryDataForPainterPath(const QPainterPath &_value, qreal lod = 1);
+QGeometryData qtGeometryDataForVectorPath(const QVectorPath &_path, qreal lod = 1);
+
+
+
+class QGLText
+{
+public:
+	enum textCaps {
+		CapStart = Qt::CapStart,
+		CapEnd = Qt::CapEnd,
+		CapAll = Qt::CapAll,
+		CapLine = 0x00100
+	};
+
+	QGLText();
+	QGLText(QString _text,QFont _font);
+
+	QString text() const;
+	void setText(QString _text);
+
+	QFont font() const;
+	void setFont(QFont _font);
+
+	qreal extrude() const;
+	void setExtrude(qreal _val);
+
+	textCaps caps() const;
+	void setCaps(textCaps _val);
+
+	qreal stroke() const;
+	void setStroke(qreal _val);
+
+	qreal strokeExtrude() const;
+	void setStrokeExtrude(qreal _val);
+
+	Qt::Alignment Align() const;
+	void setAlign(Qt::Alignment _val);
+
+	QGeometryData buildText() const;
+
+private:
+	QString m_text;
+	QFont m_font;
+	qreal m_extrude;
+	qreal m_strokeExtrude;
+	qreal m_stroke;
+	textCaps m_caps;
+	Qt::Alignment m_align;
+};
+
+QGLBuilder& operator<<(QGLBuilder& _builder, const QGLText& _text);
 
 QT_END_NAMESPACE
 
