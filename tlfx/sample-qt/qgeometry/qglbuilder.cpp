@@ -1684,27 +1684,25 @@ QGeometryData qQuadPlane(QSizeF size, int level)
     |   ||---||   |
     x---xx---xx---x
 */
-QGeometryData qCheckerQuadPlane(QSizeF size, QPointF origin, int level, QColor color1, QColor color2)
+QGeometryData qCheckerQuadPlane(QSizeF size, QPointF origin, int divisions, QColor color1, QColor color2)
+{
+    return qCheckerQuadPlane(size, origin, QSizeF(divisions,divisions), color1, color2);
+}
+QGeometryData qCheckerQuadPlane(QSizeF size, QPointF origin, QSizeF divisions, QColor color1, QColor color2)
 {
     const QColor colors[2] = { color1, color2 }; int colorIndex = 0;
-    if (level > 8)
-        level = 8;
-    if (level < 1)
-        level = 1;
-    int divisions = 1;
-    for ( ; level--; divisions *= 2) {}  // integer 2**n
-    QSizeF div = size / float(divisions);
+    QSizeF div = QSizeF(size.width() / divisions.width(), size.height() / divisions.height());
     QSizeF half = size / 2.0f;
     QGLBuilder builder; builder << QGL::NoSmoothing; // we have a few degradeted quads
     QGeometryData zip, zip2;
-    for (int yy = 0; yy < divisions; ++yy)
+    for (int yy = 0; yy < divisions.height(); ++yy)
     {
         float y = origin.y() + half.height() - float(yy) * div.height(), y2 = y - div.height();
-        float texY = float(yy) / divisions, texY2 = texY + 1./divisions;
-        colorIndex = yy%2; for (int xx = 0; xx <= divisions; ++xx)
+        float texY = float(yy) / divisions.height(), texY2 = texY + 1./divisions.height();
+        colorIndex = yy%2; for (int xx = 0; xx <= divisions.width(); ++xx)
         {
             float x = origin.x() + half.width() - float(xx) * div.width();
-            float texX = float(xx) / divisions;
+            float texX = float(xx) / divisions.width();
             zip.appendVertex(QVector3D(x, y, 0));
             zip.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY));
             zip.appendColor(colors[colorIndex%2]);
@@ -1712,7 +1710,7 @@ QGeometryData qCheckerQuadPlane(QSizeF size, QPointF origin, int level, QColor c
             zip2.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY2));
             zip2.appendColor(colors[colorIndex%2]);
             // duplicated if this is not first/last vertex
-            if (xx > 0 && xx < divisions) {
+            if (xx > 0 && xx < divisions.width()) {
                 ++colorIndex;
                 zip.appendVertex(QVector3D(x, y, 0));
                 zip.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY));

@@ -136,6 +136,7 @@ private:
     
     QOpenGLFramebufferObject *m_fbo;
     QGLFramebufferObjectSurface *m_surf;
+    QGeometryData m_grid;
     QGLPainter m_p;
     QSize m_size;
     QMatrix4x4 m_projm;
@@ -152,6 +153,7 @@ public:
         , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
+        setMinimumSize(QSize(400,200));
 	}
 	~Window() { delete m_surf; delete m_fbo; delete m_device; }
 	
@@ -201,10 +203,9 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 
         // draw background grid
-        m_p.projectionMatrix() = QMatrix4x4();
+        m_p.projectionMatrix() = QMatrix4x4(); // -1 .. 1
         m_p.setStandardEffect(QGL::FlatPerVertexColor);
-        QGeometryData grid = qCheckerQuadPlane(QSize(2,2), QPoint(0,0), 5);
-        grid.draw(&m_p, 0, grid.indexCount());
+        m_grid.draw(&m_p, 0, m_grid.indexCount());
 
         // draw rendered particles quad
         m_p.projectionMatrix() = QMatrix4x4();
@@ -304,6 +305,7 @@ public:
         guard.lock();
         m_projm.setToIdentity();
         m_projm.ortho(0, m_size.width(), m_size.height(), 0, -10, 10);
+        m_grid = qCheckerQuadPlane(QSize(2,2), QPoint(0,0), QSizeF(m_size.width()/22,m_size.height()/22));
         guard.unlock();
 	}
 	void mousePressEvent(QMouseEvent *event) {
