@@ -1617,15 +1617,13 @@ QDebug operator<<(QDebug dbg, const QGLSection &section)
 
 
 /*!
-    \class QQuadPlane
-    \brief The QQuadPlane class holds a 3D model of a large flat plane.
+    \function qQuadPlane
+    \brief The qQuadPlane constructs a 3D model of a large flat plane.
     When drawing a large flat plane, such as a wall or a floor, it is desirable
     to decompose it into smaller units to make the shading effects look correct.
-    This class composes a plane out of a configurable number of quads.
-*/
+    This function composes a plane out of a configurable number of quads.
 
-/*!
-    Construct a new QuadPlane with \a size, subdivided \a level times.  By default
+    Construct a new quad plane with \a size, subdivided \a level times.  By default
     the plane is 100.0f x 100.0f, and is subdivided 3 times - that is into an
     8 x 8 grid.
 
@@ -1659,6 +1657,74 @@ QGeometryData qQuadPlane(QSizeF size, int level)
         zip2 = zip;
         zip2.detach();
         zip.clear();
+    }
+    return builder.optimized().at(0);
+}
+
+
+/*!
+    \function qCheckerQuadPlane
+    \brief The qCheckerQuadPlane constructs a 3D model of a large flat plane.
+    When drawing a large flat plane, such as a wall or a floor, it is desirable
+    to decompose it into smaller units to make the shading effects look correct.
+    This function composes a plane out of a configurable number of quads.
+
+    Construct a new checkered quad plane with \a size, subdivided \a level times. 
+    By default the plane is 100.0f x 100.0f, and is subdivided 3 times - that is 
+    into an 8 x 8 grid. Default color1 is black and color2 is white.
+
+    It is centered on the origin, and lies in the z = 0 plane.
+    
+    x---xx---xx---x
+    |---||   ||---|
+    |---||   ||---|
+    x---xx---xx---x
+    x---xx---xx---x
+    |   ||---||   |
+    |   ||---||   |
+    x---xx---xx---x
+*/
+QGeometryData qCheckerQuadPlane(QSizeF size, QPointF origin, int level, QColor color1, QColor color2)
+{
+    const QColor colors[2] = { color1, color2 }; int colorIndex = 0;
+    if (level > 8)
+        level = 8;
+    if (level < 1)
+        level = 1;
+    int divisions = 1;
+    for ( ; level--; divisions *= 2) {}  // integer 2**n
+    QSizeF div = size / float(divisions);
+    QSizeF half = size / 2.0f;
+    QGLBuilder builder; builder << QGL::NoSmoothing; // we have a few degradeted quads
+    QGeometryData zip, zip2;
+    for (int yy = 0; yy < divisions; ++yy)
+    {
+        float y = origin.y() + half.height() - float(yy) * div.height(), y2 = y - div.height();
+        float texY = float(yy) / divisions, texY2 = texY + 1./divisions;
+        colorIndex = yy%2; for (int xx = 0; xx <= divisions; ++xx)
+        {
+            float x = origin.x() + half.width() - float(xx) * div.width();
+            float texX = float(xx) / divisions;
+            zip.appendVertex(QVector3D(x, y, 0));
+            zip.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY));
+            zip.appendColor(colors[colorIndex%2]);
+            zip2.appendVertex(QVector3D(x, y2, 0));
+            zip2.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY2));
+            zip2.appendColor(colors[colorIndex%2]);
+            // duplicated if this is not first/last vertex
+            if (xx > 0 && xx < divisions) {
+                ++colorIndex;
+                zip.appendVertex(QVector3D(x, y, 0));
+                zip.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY));
+                zip.appendColor(colors[colorIndex%2]);
+                zip2.appendVertex(QVector3D(x, y2, 0));
+                zip2.appendTexCoord(QVector2D(1.0f - texX, 1.0f - texY2));
+                zip2.appendColor(colors[colorIndex%2]);
+            }
+        }
+        builder.addQuadsInterleaved(zip, zip2);
+        zip.clear();
+        zip2.clear();
     }
     return builder.optimized().at(0);
 }

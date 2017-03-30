@@ -128,7 +128,7 @@ QGLBuilder& operator<<(QGLBuilder& builder, const QGeometryData& triangles);
 // ------------------
 
 QGeometryData qQuadPlane(QSizeF size = QSizeF(100.0f, 100.0f), int level = 3);
-QGeometryData qCheckerQuadPlane(QSizeF size = QSizeF(100.0f, 100.0f), int level = 3, QColor color1 = Qt::black, QColor color2 = Qt::white);
+QGeometryData qCheckerQuadPlane(QSizeF size = QSizeF(100.0f, 100.0f), QPointF origin = QPointF(0,0), int level = 3, QColor color1 = Qt::darkGray, QColor color2 = Qt::lightGray);
 
 
 namespace Qt {

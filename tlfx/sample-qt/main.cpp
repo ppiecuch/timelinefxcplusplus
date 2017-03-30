@@ -194,13 +194,21 @@ public:
         fbo_vert.appendIndices(2,3,0);
         
         m_p.begin(this);
-        m_p.projectionMatrix() = QMatrix4x4();
-        m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
         glClearColor(bg[m_curr_bg].color[0], 
             bg[m_curr_bg].color[1], 
             bg[m_curr_bg].color[2], 
             bg[m_curr_bg].color[3]);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+        // draw background grid
+        m_p.projectionMatrix() = QMatrix4x4();
+        m_p.setStandardEffect(QGL::FlatPerVertexColor);
+        QGeometryData grid = qCheckerQuadPlane(QSize(2,2), QPoint(0,0), 5);
+        grid.draw(&m_p, 0, grid.indexCount());
+
+        // draw rendered particles quad
+        m_p.projectionMatrix() = QMatrix4x4();
+        m_p.setStandardEffect(QGL::FlatReplaceTexture2D);
         glEnable( GL_BLEND );
         // ALPHA_ADD
         glBlendFunc( GL_SRC_ALPHA, GL_ONE );
