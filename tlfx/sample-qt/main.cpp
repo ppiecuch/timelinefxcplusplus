@@ -130,6 +130,7 @@ private:
     QtParticleManager *m_pm;
     quint32 m_curr_effect; // currently selected effect
     quint32 m_curr_bg; // current background style
+    bool m_draw_grid; // draw additional grid
     qint32 m_msg_line; // line with blending message
 
     QMutex guard;
@@ -150,7 +151,7 @@ public:
 		, m_device(0)
         , m_fbo(0), m_surf(0)
         , m_curr_library(library)
-        , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0)
+        , m_effects(0), m_pm(0), m_curr_effect(0), m_curr_bg(0), m_draw_grid(false)
 		, m_done(false) {
 		setSurfaceType(QWindow::OpenGLSurface);
         setMinimumSize(QSize(400,200));
@@ -202,10 +203,12 @@ public:
             bg[m_curr_bg].color[3]);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        // draw background grid
-        m_p.projectionMatrix() = QMatrix4x4(); // -1 .. 1
-        m_p.setStandardEffect(QGL::FlatPerVertexColor);
-        m_grid.draw(&m_p, 0, m_grid.indexCount());
+        // draw transparent background grid
+        if (m_draw_grid) {
+            m_p.projectionMatrix() = QMatrix4x4(); // -1 .. 1
+            m_p.setStandardEffect(QGL::FlatPerVertexColor);
+            m_grid.draw(&m_p, 0, m_grid.indexCount());
+        }
 
         // draw rendered particles quad
         m_p.projectionMatrix() = QMatrix4x4();
@@ -281,6 +284,7 @@ public:
         dbgAppendMessage(" >: next effect");
         dbgAppendMessage(" <: previous effect");
         dbgAppendMessage(" b: switch background");
+        dbgAppendMessage(" g: show grid");
         dbgAppendMessage(" t: toggle foreground");
         dbgAppendMessage(" m: toggle blending mode");
         dbgAppendMessage(" p: toggle pause");
@@ -305,7 +309,7 @@ public:
         guard.lock();
         m_projm.setToIdentity();
         m_projm.ortho(0, m_size.width(), m_size.height(), 0, -10, 10);
-        m_grid = qCheckerQuadPlane(QSize(2,2), QPoint(0,0), QSizeF(m_size.width()/22,m_size.height()/22));
+        m_grid = qCheckerQuadPlane(QSize(2,2), QPoint(0,0), QSizeF(m_size.width()/22,m_size.height()/22), QColor(0x80,0x80,0x80,0x80), QColor(0xc0,0xc0,0xc0,0x80));
         guard.unlock();
 	}
 	void mousePressEvent(QMouseEvent *event) {
@@ -352,7 +356,10 @@ public:
             m_pm->AddEffect(cpy);
             guard.unlock();
         } break;
-		case Qt::Key_B: 
+		case Qt::Key_G:
+            m_draw_grid = !m_draw_grid;
+            break;
+		case Qt::Key_B:
             ++m_curr_bg %= Bg_cnt; 
             // update default settings for this visual:
             dbgSetInvert(bg[m_curr_bg].invert);
